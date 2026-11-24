@@ -60,6 +60,12 @@ function marked(version: number, overrides: Partial<EventData> = {}): EventData 
   }
 }
 
+/** The fixture seen by a visitor before Paolo, its last participant, joined. */
+function beforePaolo(): EventData {
+  const event = fixtureEvent(null, { version: 40 })
+  return { ...event, participants: event.participants.filter((p) => p.id !== idOf('Paolo')) }
+}
+
 async function mount() {
   const hook = renderHook(() => useEvent(ID))
   await settle()
@@ -420,16 +426,48 @@ describe('marking', () => {
 
 describe('joining', () => {
   it('stores the token and becomes a participant', async () => {
-    getEvent.mockResolvedValue(fixtureEvent())
+    getEvent.mockResolvedValue(beforePaolo())
     const { result } = await mount()
-    const joined = fixtureEvent('Anna', { version: 41 })
-    joinEvent.mockResolvedValue({ event: { ...joined, me: null }, participant_token: 'p_new' })
+    // As the backend answers a join: the event as the new participant sees it.
+    joinEvent.mockResolvedValue({ event: fixtureEvent('Paolo', { version: 41 }), participant_token: 'p_new' })
 
     await act(() => result.current.join('Paolo'))
 
     expect(joinEvent).toHaveBeenCalledWith(ID, 'Paolo')
     expect(credentials.load(ID).participant).toBe('p_new')
     expect(result.current.event?.me).toBe(idOf('Paolo'))
+    expect(result.current.event?.participants.map((p) => p.name)).toContain('Paolo')
+  })
+
+  it('does not believe a read that left before the join answered', async () => {
+    getEvent.mockResolvedValue(beforePaolo())
+    const { result } = await mount()
+    const answer = deferred<Awaited<ReturnType<typeof client.joinEvent>>>()
+    joinEvent.mockReturnValue(answer.promise)
+    const staleRead = deferred<EventData>()
+    getEvent.mockReturnValueOnce(staleRead.promise)
+
+    let joining!: Promise<void>
+    act(() => void (joining = result.current.join('Paolo')))
+    // The join's own update comes down the stream before its answer, and
+    // sends a read that still has no token.
+    act(() => FakeEventSource.latest().emit({ version: 41, kind: 'participants', by: idOf('Paolo') }))
+    await settle()
+    expect(getEvent).toHaveBeenLastCalledWith(ID, {})
+
+    answer.resolve({ event: fixtureEvent('Paolo', { version: 41 }), participant_token: 'p_new' })
+    await act(() => joining)
+    expect(result.current.event?.me).toBe(idOf('Paolo'))
+
+    // The read answers as it was asked: for a visitor, at the same version.
+    getEvent.mockResolvedValue(fixtureEvent('Paolo', { version: 41 }))
+    staleRead.resolve(fixtureEvent(null, { version: 41 }))
+    await settle()
+
+    expect(getEvent).toHaveBeenLastCalledWith(ID, { participant: 'p_new' })
+    expect(result.current.event?.me).toBe(idOf('Paolo'))
+    expect(result.current.dropped).toBe(false)
+    expect(credentials.load(ID).participant).toBe('p_new')
   })
 
   it('stays a participant when the browser has no storage to keep the token in', async () => {
