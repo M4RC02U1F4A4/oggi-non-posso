@@ -1,14 +1,18 @@
 // Package api is the HTTP face of the service: the JSON API of the design
-// document. It holds no interface text and returns no HTML.
+// document, its stream of live updates, the health check and, when a
+// directory is configured, the files of the built frontend. It holds no
+// interface text and produces no HTML of its own.
 package api
 
 import (
 	"log/slog"
 	"net/http"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/M4RC02U1F4A4/oggi-non-posso/backend/internal/hub"
+	"github.com/M4RC02U1F4A4/oggi-non-posso/backend/internal/ratelimit"
 	"github.com/M4RC02U1F4A4/oggi-non-posso/backend/internal/store"
 )
 
@@ -34,6 +38,14 @@ type Options struct {
 	// PingInterval is the time between two comment lines on an idle
 	// stream; zero means 25 seconds.
 	PingInterval time.Duration
+	// RateLimit turns on the limits on creating events and joining.
+	RateLimit bool
+	// ClientIPHeader names the header that holds the client address behind
+	// a trusted proxy; empty uses the address of the connection.
+	ClientIPHeader string
+	// StaticDir is the directory of the built frontend; empty serves the
+	// API only.
+	StaticDir string
 }
 
 type api struct {
@@ -43,10 +55,19 @@ type api struct {
 	log             *slog.Logger
 	updates         Subscriber
 	pingInterval    time.Duration
+	clientIPHeader  string
+	staticDir       string
+	creations       *ratelimit.Limiter // nil when rate limits are off
+	joins           *ratelimit.Limiter // nil when rate limits are off
+	mux             *http.ServeMux     // the routes under /api
 }
 
-// New returns the handler of the service.
-func New(o Options) http.Handler {
+// New returns the handler of the service: the API under /api, the health
+// check, and the built frontend when there is one.
+func New(o Options) http.Handler { return newAPI(o, time.Now) }
+
+// newAPI is New with the clock of the rate limits given.
+func newAPI(o Options, now func() time.Time) http.Handler {
 	a := &api{
 		store:           o.Store,
 		notifier:        o.Notifier,
@@ -54,12 +75,18 @@ func New(o Options) http.Handler {
 		log:             o.Logger,
 		updates:         o.Updates,
 		pingInterval:    o.PingInterval,
+		clientIPHeader:  o.ClientIPHeader,
+		staticDir:       o.StaticDir,
 	}
 	if a.log == nil {
 		a.log = slog.New(slog.DiscardHandler)
 	}
 	if a.pingInterval <= 0 {
 		a.pingInterval = defaultPingInterval
+	}
+	if o.RateLimit {
+		a.creations = ratelimit.New(creationsPerWindow, rateWindow, now)
+		a.joins = ratelimit.New(joinsPerWindow, rateWindow, now)
 	}
 
 	mux := http.NewServeMux()
@@ -73,19 +100,35 @@ func New(o Options) http.Handler {
 	if a.updates != nil {
 		mux.HandleFunc("GET /api/events/{id}/stream", a.stream)
 	}
-	// Everything else, a known path with another method included, is a
-	// JSON 404: with this catch-all the mux never answers on its own.
+	// Everything else under /api, a known path with another method
+	// included, is a JSON 404: with this catch-all the mux never answers on
+	// its own.
 	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) { notFound(w) })
+	a.mux = mux
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return securityHeaders(http.HandlerFunc(a.route))
+}
+
+// route sends a request to the API, the health check or the frontend.
+func (a *api) route(w http.ResponseWriter, r *http.Request) {
+	p := r.URL.Path
+	switch {
+	case p == "/api" || strings.HasPrefix(p, "/api/"):
 		// The mux would answer a path that is not in its clean form with a
 		// redirect and a line of HTML.
-		if path.Clean(r.URL.Path) != r.URL.Path {
+		if path.Clean(p) != p {
 			notFound(w)
 			return
 		}
-		mux.ServeHTTP(w, r)
-	})
+		a.mux.ServeHTTP(w, r)
+	case p == "/healthz" && (r.Method == http.MethodGet || r.Method == http.MethodHead):
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		_, _ = w.Write([]byte("ok"))
+	case a.staticDir != "" && p != "/healthz":
+		a.serveStatic(w, r)
+	default:
+		notFound(w)
+	}
 }
 
 // publish announces a change. by is the participant who caused it, or nil.

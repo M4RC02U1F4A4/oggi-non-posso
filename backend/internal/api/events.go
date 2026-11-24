@@ -105,6 +105,9 @@ type dayInput struct {
 }
 
 func (a *api) createEvent(w http.ResponseWriter, r *http.Request) {
+	if !a.allow(w, r, a.creations) {
+		return
+	}
 	var body struct {
 		Title         string     `json:"title"`
 		OrganiserName string     `json:"organiser_name"`
@@ -176,6 +179,9 @@ func (a *api) getEvent(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *api) join(w http.ResponseWriter, r *http.Request) {
+	if !a.allow(w, r, a.joins) {
+		return
+	}
 	_, c, ok := a.load(w, r)
 	if !ok {
 		return

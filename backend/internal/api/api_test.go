@@ -58,6 +58,25 @@ type harness struct {
 	handler http.Handler
 	store   *sqlite.Store
 	notes   *recorder
+	clock   *clock // the clock of the rate limits
+}
+
+// clock is a clock that moves only when told.
+type clock struct {
+	mu sync.Mutex
+	t  time.Time
+}
+
+func (c *clock) now() time.Time {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.t
+}
+
+func (c *clock) advance(d time.Duration) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.t = c.t.Add(d)
 }
 
 func newHarness(t *testing.T, change ...func(*Options)) *harness {
@@ -77,7 +96,8 @@ func newHarness(t *testing.T, change ...func(*Options)) *harness {
 	for _, f := range change {
 		f(&o)
 	}
-	return &harness{t: t, handler: New(o), store: st, notes: notes}
+	c := &clock{t: time.Date(2026, 11, 24, 13, 5, 0, 0, time.UTC)}
+	return &harness{t: t, handler: newAPI(o, c.now), store: st, notes: notes, clock: c}
 }
 
 // The JSON of the contract, as a client reads it.
@@ -139,10 +159,12 @@ type response struct {
 	body   []byte
 }
 
-// creds are the headers a request carries.
+// creds are the headers a request carries, and where it comes from.
 type creds struct {
-	token string // participant token
-	key   string // organiser key
+	token   string            // participant token
+	key     string            // organiser key
+	from    string            // address of the connection; empty for the default
+	headers map[string]string // any other header
 }
 
 func (h *harness) do(method, path string, body any, c creds) *response {
@@ -167,6 +189,12 @@ func (h *harness) do(method, path string, body any, c creds) *response {
 	}
 	if c.key != "" {
 		req.Header.Set("X-Organiser-Key", c.key)
+	}
+	if c.from != "" {
+		req.RemoteAddr = c.from
+	}
+	for name, value := range c.headers {
+		req.Header.Set(name, value)
 	}
 	rec := httptest.NewRecorder()
 	h.handler.ServeHTTP(rec, req)
