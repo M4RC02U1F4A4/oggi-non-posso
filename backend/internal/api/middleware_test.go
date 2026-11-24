@@ -199,12 +199,11 @@ func TestAddressKey(t *testing.T) {
 		"192.0.2.7":                   "192.0.2.7",
 		"::ffff:192.0.2.7":            "192.0.2.7",
 		"::ffff:c000:207":             "192.0.2.7",
-		"2001:db8:0:1::1":             "2001:db8:0:1::/64",
-		"2001:db8:0:1:ffff:ffff:0:2":  "2001:db8:0:1::/64",
-		"2001:0db8:0000:0001:0:0:0:3": "2001:db8:0:1::/64",
-		"2001:db8:0:2::1":             "2001:db8:0:2::/64",
-		"2001:db8:0:1::1%eth0":        "2001:db8:0:1::/64",
-		"2001:db8::":                  "2001:db8::/64",
+		"2001:db8:0:1::1":             "2001:db8::/56",
+		"2001:db8:0:ff:ffff:ffff:0:2": "2001:db8::/56",
+		"2001:0db8:0000:0001:0:0:0:3": "2001:db8::/56",
+		"2001:db8:0:100::1":           "2001:db8:0:100::/56",
+		"2001:db8:0:1::1%eth0":        "2001:db8::/56",
 	} {
 		if got, ok := addressKey(in); !ok || got != want {
 			t.Errorf("addressKey(%q) = %q, %v; want %q", in, got, ok, want)
@@ -229,25 +228,25 @@ func creations(h *harness, n int, c creds) int {
 func TestRateLimitCountsAnIPv6Network(t *testing.T) {
 	h := newHarness(t, limited)
 
-	// One subscriber owns a whole /64 and can rotate through it.
+	// One subscriber owns a whole /56 and can rotate through its /64s.
 	for i := range 10 {
-		from := fmt.Sprintf("[2001:db8:0:1:%x::%x]:40000", i+1, i+1)
+		from := fmt.Sprintf("[2001:db8:0:%x::%x]:40000", i+1, i+1)
 		if status := creations(h, 1, creds{from: from}); status != http.StatusCreated {
 			t.Fatalf("creation %d from %s: status %d", i+1, from, status)
 		}
 	}
-	if status := creations(h, 1, creds{from: "[2001:db8:0:1:ffff:ffff:ffff:ffff]:40000"}); status != http.StatusTooManyRequests {
-		t.Fatalf("eleventh creation from the same /64: status %d, want 429", status)
+	if status := creations(h, 1, creds{from: "[2001:db8:0:ff:ffff:ffff:ffff:ffff]:40000"}); status != http.StatusTooManyRequests {
+		t.Fatalf("eleventh creation from the same /56: status %d, want 429", status)
 	}
 	if status := creations(h, 1, creds{from: "[2001:db8:0:1::1%eth0]:40000"}); status != http.StatusTooManyRequests {
-		t.Fatalf("the same /64 with a zone: status %d, want 429", status)
+		t.Fatalf("the same /56 with a zone: status %d, want 429", status)
 	}
-	// Another /64 has its own budget.
-	if status := creations(h, 10, creds{from: "[2001:db8:0:2::1]:40000"}); status != http.StatusCreated {
-		t.Fatalf("tenth creation from another /64: status %d", status)
+	// Another /56 has its own budget.
+	if status := creations(h, 10, creds{from: "[2001:db8:0:100::1]:40000"}); status != http.StatusCreated {
+		t.Fatalf("tenth creation from another /56: status %d", status)
 	}
-	if status := creations(h, 1, creds{from: "[2001:db8:0:2::2]:40000"}); status != http.StatusTooManyRequests {
-		t.Fatalf("eleventh creation from the other /64: status %d, want 429", status)
+	if status := creations(h, 1, creds{from: "[2001:db8:0:1ff::2]:40000"}); status != http.StatusTooManyRequests {
+		t.Fatalf("eleventh creation from the other /56: status %d, want 429", status)
 	}
 }
 
@@ -286,7 +285,7 @@ func TestClientIPHeaderIsNormalised(t *testing.T) {
 		t.Fatalf("status %d", status)
 	}
 	if status := creations(h, 1, via("2001:db8:0:1::3")); status != http.StatusTooManyRequests {
-		t.Fatalf("eleventh creation from the same /64: status %d, want 429", status)
+		t.Fatalf("eleventh creation from the same /56: status %d, want 429", status)
 	}
 	if status := creations(h, 5, via("::ffff:192.0.2.7")); status != http.StatusCreated {
 		t.Fatalf("status %d", status)

@@ -111,9 +111,9 @@ func (a *api) clientAddress(r *http.Request) string {
 // reports false for anything that is not an IP address.
 //
 // An IPv4 address is its own key, also when it arrives written as an
-// IPv4-mapped IPv6 address. An IPv6 address is counted by its /64: that is
-// what one subscriber is given, so whoever holds one can change address
-// inside it at will. A zone is dropped.
+// IPv4-mapped IPv6 address. An IPv6 address is counted by its /56: a home
+// line is commonly given a whole /56 (256 /64s), so counting by /64 would
+// let one subscriber multiply every limit by 256. A zone is dropped.
 func addressKey(s string) (string, bool) {
 	addr, err := netip.ParseAddr(s)
 	if err != nil {
@@ -123,7 +123,7 @@ func addressKey(s string) (string, bool) {
 	if addr.Is4() {
 		return addr.String(), true
 	}
-	network, err := addr.Prefix(64)
+	network, err := addr.Prefix(56)
 	if err != nil {
 		return "", false
 	}
