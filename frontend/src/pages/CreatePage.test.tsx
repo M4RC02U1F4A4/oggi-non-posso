@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { MemoryRouter } from 'react-router'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { MemoryRouter, useLocation, type InitialEntry } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as client from '../api/client'
 import { ApiError } from '../api/types'
@@ -17,10 +17,20 @@ const createEvent = vi.mocked(client.createEvent)
 const ID = EVENT_ID
 const KEY = ORGANISER_KEY
 
-function open() {
+/** The history entry the page is on, as a reload would find it. */
+let here: { pathname: string; state: unknown } | null = null
+
+function Probe() {
+  const location = useLocation()
+  here = { pathname: location.pathname, state: location.state }
+  return null
+}
+
+function open(entry: InitialEntry = '/') {
   render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[entry]}>
       <CreatePage />
+      <Probe />
     </MemoryRouter>,
   )
 }
@@ -126,6 +136,52 @@ describe('creating an event', () => {
       text: 'Rimpatriata di dicembre: segna quando non puoi',
       url: `${window.location.origin}/e/${ID}`,
     })
+  })
+})
+
+describe('after creating', () => {
+  async function create() {
+    open()
+    fill('Rimpatriata di dicembre', 'Giulia')
+    pickDay('sabato 28 novembre 2026')
+    submit()
+    await screen.findByText('Fatto. Ora manda il link')
+  }
+
+  it('keeps the screen in the history, without the organiser key', async () => {
+    await create()
+    expect(here?.pathname).toBe('/')
+    expect(JSON.stringify(here?.state)).toContain(ID)
+    expect(JSON.stringify(here?.state)).not.toContain(KEY)
+  })
+
+  it('shows the same screen after a reload', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    vi.stubGlobal('navigator', { clipboard: { writeText } })
+    await create()
+    const entry = { pathname: '/', state: here?.state }
+    cleanup()
+
+    open(entry)
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Fatto. Ora manda il link')
+    expect(screen.getByText('Rimpatriata di dicembre')).toBeDefined()
+    expect(screen.getByText(/ti riconosce già come Giulia/)).toBeDefined()
+    fireEvent.click(screen.getByRole('button', { name: 'Copia il link per organizzare' }))
+    await waitFor(() => expect(writeText).toHaveBeenLastCalledWith(`${window.location.origin}/e/${ID}/o/${KEY}`))
+  })
+
+  it('shows the form at a fresh visit, and when the key is no longer here', async () => {
+    await create()
+    const entry = { pathname: '/', state: here?.state }
+    cleanup()
+
+    open()
+    expect(screen.getByRole('button', { name: 'Crea e prendi il link' })).toBeDefined()
+    cleanup()
+
+    window.localStorage.clear()
+    open(entry)
+    expect(screen.getByRole('button', { name: 'Crea e prendi il link' })).toBeDefined()
   })
 })
 

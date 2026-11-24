@@ -1,7 +1,6 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
-import { Link } from 'react-router'
+import { Link, useLocation, useNavigate } from 'react-router'
 import { createEvent } from '../api/client'
-import type { CreatedEvent } from '../api/types'
 import { Band } from '../components/Band'
 import { CopyButton } from '../components/CopyButton'
 import { DayPicker } from '../components/DayPicker'
@@ -15,15 +14,40 @@ import { errorMessage } from '../lib/errors'
 import { MAX_DAYS, MAX_NAME_LENGTH, MAX_TITLE_LENGTH, countCharacters } from '../lib/limits'
 import '../styles/CreatePage.css'
 
+/**
+ * The event just created, as the history entry of `/` keeps it, so that a
+ * reload or a step back finds the links again. The organiser key is not in
+ * it: history state is not a place for a credential. It is read back from
+ * the credentials of the event.
+ */
 interface Created {
-  event: CreatedEvent['event']
-  organiserKey: string
+  id: string
+  title: string
   name: string
 }
 
+function createdOf(state: unknown): Created | null {
+  if (typeof state !== 'object' || state === null || !('created' in state)) return null
+  const created = (state as { created: unknown }).created
+  if (typeof created !== 'object' || created === null) return null
+  const { id, title, name } = created as Record<string, unknown>
+  if (typeof id !== 'string' || typeof title !== 'string' || typeof name !== 'string') return null
+  return { id, title, name }
+}
+
 export function CreatePage() {
-  const [created, setCreated] = useState<Created | null>(null)
-  return created ? <CreatedView created={created} /> : <CreateForm onCreated={setCreated} />
+  const location = useLocation()
+  const navigate = useNavigate()
+  const created = createdOf(location.state)
+  // Without its key (storage cleared, or only in the memory of a page now
+  // gone) the screen has nothing left to hand over: start again.
+  const key = created ? credentials.load(created.id).organiser : undefined
+  if (created && key !== undefined) return <CreatedView created={created} organiserKey={key} />
+  return (
+    <CreateForm
+      onCreated={(next) => void navigate('/', { replace: true, state: { created: next } })}
+    />
+  )
 }
 
 interface FieldErrors {
@@ -77,7 +101,7 @@ function CreateForm({ onCreated }: { onCreated: (created: Created) => void }) {
       const result = await createEvent({ title: cleanTitle, organiser_name: cleanName, days: toEventDays(draft) })
       credentials.saveParticipant(result.event.id, result.participant_token)
       credentials.saveOrganiser(result.event.id, result.organiser_key)
-      onCreated({ event: result.event, organiserKey: result.organiser_key, name: cleanName })
+      onCreated({ id: result.event.id, title: result.event.title, name: cleanName })
     } catch (err) {
       setFailure(errorMessage(err))
       setBusy(false)
@@ -190,8 +214,9 @@ function maskedOrganiserLink(host: string, eventId: string, key: string): string
 }
 
 /** Right after creating: the link for the others, the link to keep, the way in. */
-function CreatedView({ created }: { created: Created }) {
-  const { event, organiserKey, name } = created
+function CreatedView({ created, organiserKey }: { created: Created; organiserKey: string }) {
+  const { name } = created
+  const event = { id: created.id, title: created.title }
   useDocumentTitle(event.title)
   const headingRef = useRef<HTMLDivElement>(null)
   const { origin, host } = window.location
