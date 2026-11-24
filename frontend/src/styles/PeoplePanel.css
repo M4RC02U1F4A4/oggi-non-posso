@@ -72,3 +72,8 @@
 .people__error {
   margin-top: 12px;
 }
+
+/* Takes the focus once a person is removed; it is not a control. */
+.people__title:focus {
+  outline: none;
+}

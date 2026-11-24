@@ -5,15 +5,17 @@ import * as client from '../api/client'
 import { ApiError } from '../api/types'
 import { App } from '../App'
 import * as credentials from '../lib/credentials'
-import { installFakeEventSource, setVisibility } from '../test/eventSource'
-import { EVENT_ID, ORGANISER_KEY, OTHER_KEY, fixtureEvent } from '../test/fixture'
+import { FakeEventSource, installFakeEventSource, setVisibility } from '../test/eventSource'
+import { EVENT_ID, ORGANISER_KEY, OTHER_KEY, closedFixtureEvent, fixtureEvent } from '../test/fixture'
 
 vi.mock('../api/client', async (original) => ({
   ...(await original<typeof client>()),
   getEvent: vi.fn(),
+  joinEvent: vi.fn(),
 }))
 
 const getEvent = vi.mocked(client.getEvent)
+const joinEvent = vi.mocked(client.joinEvent)
 
 const INVALID = 'Questo link per organizzare non vale per questo evento.'
 const NOT_FOUND = 'Questo evento non c’è'
@@ -174,5 +176,41 @@ describe('the organiser link', () => {
     expect(address()).toBe('/e/anything')
     expect(getEvent).not.toHaveBeenCalled()
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(NOT_FOUND)
+  })
+})
+
+describe('where the focus goes', () => {
+  const heading = () => screen.getByRole('heading', { level: 1 })
+
+  it('to the title when the voting closes and when it opens again', async () => {
+    credentials.saveParticipant(EVENT_ID, 'p_anna')
+    getEvent.mockResolvedValue(fixtureEvent('Anna'))
+    await open(EVENT_PATH)
+    expect(document.activeElement).not.toBe(heading())
+
+    getEvent.mockResolvedValue(closedFixtureEvent('Anna'))
+    act(() => FakeEventSource.latest().emit({ version: 41, kind: 'status', by: null }))
+    await settle()
+    expect(heading().textContent).toBe('Ci siete tutti in tre momenti')
+    expect(document.activeElement).toBe(heading())
+
+    getEvent.mockResolvedValue(fixtureEvent('Anna', { version: 42 }))
+    act(() => FakeEventSource.latest().emit({ version: 42, kind: 'status', by: null }))
+    await settle()
+    expect(heading().textContent).toBe('Rimpatriata di dicembre')
+    expect(document.activeElement).toBe(heading())
+  })
+
+  it('to the title once the name is in', async () => {
+    getEvent.mockResolvedValue(fixtureEvent())
+    await open(EVENT_PATH)
+    joinEvent.mockResolvedValue({ event: fixtureEvent('Paolo', { version: 41 }), participant_token: 'p_paolo' })
+
+    fireEvent.change(screen.getByLabelText('Come ti chiami?'), { target: { value: 'Paolo' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Entra e segna quando non puoi' }))
+    await settle()
+    expect(joinEvent).toHaveBeenCalledOnce()
+    expect(screen.queryByLabelText('Come ti chiami?')).toBeNull()
+    expect(document.activeElement).toBe(heading())
   })
 })

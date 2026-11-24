@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { errorCode, type ErrorCode, type EventData, type Participant } from '../api/types'
 import type { SaveState } from '../hooks/useEvent'
 import { t } from '../i18n'
@@ -27,6 +27,26 @@ export function PeoplePanel({ event, marking, saveState, onRemove }: PeoplePanel
   const [confirming, setConfirming] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<ErrorCode | null>(null)
+  const titleRef = useRef<HTMLHeadingElement>(null)
+  // The "Togli" buttons by participant id, to go back to the one that asked.
+  const removeButtons = useRef(new Map<string, HTMLButtonElement>())
+  // Where the focus goes once the question is gone: the button that asked
+  // it, or the list when that person is no longer in it.
+  const refocus = useRef<string | 'list' | null>(null)
+
+  useEffect(() => {
+    const target = refocus.current
+    if (confirming !== null || target === null) return
+    refocus.current = null
+    const button = target === 'list' ? undefined : removeButtons.current.get(target)
+    if (button) button.focus()
+    else titleRef.current?.focus()
+  }, [confirming])
+
+  const cancel = (participantId: string) => {
+    refocus.current = participantId
+    setConfirming(null)
+  }
 
   const remove = async (participantId: string) => {
     if (!onRemove) return
@@ -34,8 +54,10 @@ export function PeoplePanel({ event, marking, saveState, onRemove }: PeoplePanel
     setError(null)
     try {
       await onRemove(participantId)
+      refocus.current = 'list'
     } catch (err) {
       setError(errorCode(err))
+      refocus.current = participantId
     } finally {
       setBusy(false)
       setConfirming(null)
@@ -44,7 +66,7 @@ export function PeoplePanel({ event, marking, saveState, onRemove }: PeoplePanel
 
   return (
     <section className="people">
-      <h2 className="people__title">{t('people.title', { count: event.participants.length })}</h2>
+      <h2 className="people__title" ref={titleRef} tabIndex={-1}>{t('people.title', { count: event.participants.length })}</h2>
       <ul className="people__list">
         {event.participants.map((participant) => {
           const mine = participant.id === event.me
@@ -74,6 +96,10 @@ export function PeoplePanel({ event, marking, saveState, onRemove }: PeoplePanel
                 )}
                 {removable && confirming !== participant.id && (
                   <button
+                    ref={(button) => {
+                      if (button) removeButtons.current.set(participant.id, button)
+                      else removeButtons.current.delete(participant.id)
+                    }}
                     type="button"
                     className="link-btn people__remove"
                     aria-label={t('people.removeLabel', { name: participant.name })}
@@ -98,7 +124,7 @@ export function PeoplePanel({ event, marking, saveState, onRemove }: PeoplePanel
                   >
                     {t('people.removeYes')}
                   </button>
-                  <button type="button" className="link-btn" disabled={busy} onClick={() => setConfirming(null)}>
+                  <button type="button" className="link-btn" disabled={busy} onClick={() => cancel(participant.id)}>
                     {t('common.cancel')}
                   </button>
                 </div>

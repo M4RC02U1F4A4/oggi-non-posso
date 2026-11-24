@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import { ApiError } from '../api/types'
 import { fixtureEvent, idOf } from '../test/fixture'
 import { PeoplePanel } from './PeoplePanel'
 
@@ -44,5 +45,28 @@ describe('PeoplePanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Togli Luca' }))
     fireEvent.click(screen.getByRole('button', { name: 'Sì, togli' }))
     await waitFor(() => expect(onRemove).toHaveBeenCalledExactlyOnceWith(idOf('Luca')))
+  })
+
+  it('gives the focus back to the button that asked on cancel, and to the list once removed', async () => {
+    const onRemove = vi.fn().mockResolvedValue(undefined)
+    render(<PeoplePanel event={fixtureEvent('Giulia')} marking={nobody} saveState="saved" onRemove={onRemove} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Togli Luca' }))
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Sì, togli' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Annulla' }))
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Togli Luca' }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Togli Luca' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Sì, togli' }))
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('heading')))
+  })
+
+  it('gives the focus back to the button that asked when the server refuses', async () => {
+    const onRemove = vi.fn().mockRejectedValue(new ApiError('network', 0))
+    render(<PeoplePanel event={fixtureEvent('Giulia')} marking={nobody} saveState="saved" onRemove={onRemove} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Togli Luca' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Sì, togli' }))
+    await screen.findByRole('alert')
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Togli Luca' })))
   })
 })

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { ReactNode, Ref } from 'react'
 import { Link } from 'react-router'
 import { t } from '../i18n'
 import '../styles/Band.css'
@@ -14,10 +14,12 @@ interface BandProps {
   wide?: ReactNode
   /** Text under the title, narrow layout only. */
   narrow?: ReactNode
+  /** Given when the page moves the focus to its title, after a change of view. */
+  titleRef?: Ref<HTMLHeadingElement>
 }
 
 /** The yellow band at the top of every page. */
-export function Band({ title, eyebrow, status, wide, narrow }: BandProps) {
+export function Band({ title, eyebrow, status, wide, narrow, titleRef }: BandProps) {
   return (
     <header className="band">
       <div className="band__inner wrap">
@@ -26,7 +28,13 @@ export function Band({ title, eyebrow, status, wide, narrow }: BandProps) {
             {t('app.name')}
           </Link>
           {eyebrow && <p className="band__eyebrow">{eyebrow}</p>}
-          {title !== undefined ? <h1 className="band__title">{title}</h1> : <div className="band__title" />}
+          {title !== undefined ? (
+            <h1 className="band__title" ref={titleRef} tabIndex={titleRef ? -1 : undefined}>
+              {title}
+            </h1>
+          ) : (
+            <div className="band__title" />
+          )}
           {narrow && <p className="band__text only-narrow">{narrow}</p>}
         </div>
         {(status || wide) && (

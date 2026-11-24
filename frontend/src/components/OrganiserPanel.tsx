@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { errorCode, type ErrorCode, type EventData } from '../api/types'
 import { t } from '../i18n'
 import * as credentials from '../lib/credentials'
@@ -22,6 +22,20 @@ export function OrganiserPanel({ event, onClose, onReopen }: OrganiserPanelProps
   const [error, setError] = useState<ErrorCode | null>(null)
   const open = event.status === 'open'
   const key = credentials.load(event.id).organiser
+  const closeRef = useRef<HTMLButtonElement>(null)
+  // Set when the question goes away and the button that asked it comes back.
+  const refocus = useRef(false)
+
+  useEffect(() => {
+    if (confirming || !refocus.current) return
+    refocus.current = false
+    closeRef.current?.focus()
+  }, [confirming])
+
+  const cancel = () => {
+    refocus.current = true
+    setConfirming(false)
+  }
 
   const run = async (action: () => Promise<void>) => {
     setBusy(true)
@@ -30,6 +44,9 @@ export function OrganiserPanel({ event, onClose, onReopen }: OrganiserPanelProps
       await action()
     } catch (err) {
       setError(errorCode(err))
+      // Still open: back to where the person was. A success changes the
+      // whole page, which takes the focus to its title.
+      refocus.current = true
     } finally {
       setBusy(false)
       setConfirming(false)
@@ -52,14 +69,14 @@ export function OrganiserPanel({ event, onClose, onReopen }: OrganiserPanelProps
             <button type="button" className="btn" disabled={busy} autoFocus onClick={() => void run(onClose)}>
               {t('organiser.closeYes')}
             </button>
-            <button type="button" className="btn btn--outline" disabled={busy} onClick={() => setConfirming(false)}>
+            <button type="button" className="btn btn--outline" disabled={busy} onClick={cancel}>
               {t('common.cancel')}
             </button>
           </div>
         </div>
       ) : (
         <>
-          <button type="button" className="btn btn--block" onClick={() => setConfirming(true)}>
+          <button ref={closeRef} type="button" className="btn btn--block" onClick={() => setConfirming(true)}>
             {t('organiser.close')}
           </button>
           <p className="org__help">{t('organiser.closeHelp')}</p>

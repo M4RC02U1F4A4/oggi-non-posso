@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { useMatch, useNavigate, useParams } from 'react-router'
 import type { EventData } from '../api/types'
 import { Band } from '../components/Band'
@@ -58,6 +58,20 @@ function EventView({ id, link }: { id: string; link: OrganiserLink }) {
   const live = useEvent(id, opened.key)
   useDocumentTitle(live.event?.title)
   const badOrganiserLink = live.organiserLinkRejected || (opened.present && opened.key === null)
+  const titleRef = useRef<HTMLHeadingElement>(null)
+
+  // The voting closing or opening again, or a name just given, changes the
+  // whole page under the person: the focus goes to its new title instead
+  // of being lost with the control that had it.
+  const status = live.event?.status
+  const joined = live.event ? live.event.me !== null : undefined
+  const seen = useRef<{ status: string; joined: boolean } | null>(null)
+  useEffect(() => {
+    if (status === undefined || joined === undefined) return
+    const before = seen.current
+    seen.current = { status, joined }
+    if (before !== null && (before.status !== status || (!before.joined && joined))) titleRef.current?.focus()
+  }, [status, joined])
 
   if (live.state === 'not_found') return <NotFoundPage kind="event" />
 
@@ -93,13 +107,20 @@ function EventView({ id, link }: { id: string; link: OrganiserLink }) {
   ) : null
 
   return live.event.status === 'open' ? (
-    <OpenEvent event={live.event} live={live} notice={notice} />
+    <OpenEvent event={live.event} live={live} notice={notice} titleRef={titleRef} />
   ) : (
-    <ClosedEvent event={live.event} live={live} notice={notice} />
+    <ClosedEvent event={live.event} live={live} notice={notice} titleRef={titleRef} />
   )
 }
 
-function OpenEvent({ event, live, notice }: { event: EventData; live: UseEvent; notice: ReactNode }) {
+interface ViewProps {
+  event: EventData
+  live: UseEvent
+  notice: ReactNode
+  titleRef: RefObject<HTMLHeadingElement | null>
+}
+
+function OpenEvent({ event, live, notice, titleRef }: ViewProps) {
   const me = findParticipant(event, event.me)
   const organiser = organiserOf(event)
   const count = event.participants.length
@@ -115,6 +136,7 @@ function OpenEvent({ event, live, notice }: { event: EventData; live: UseEvent; 
   return (
     <div className={me ? 'page page--bar' : 'page'}>
       <Band
+        titleRef={titleRef}
         title={event.title}
         status={t('event.status.open')}
         wide={me ? t(event.can_manage ? 'event.tagline.organiser' : 'event.tagline.participant') : visitorText}
@@ -223,7 +245,7 @@ function OpenEvent({ event, live, notice }: { event: EventData; live: UseEvent; 
 /** Above this many people the band counts them without naming them. */
 const MAX_NAMES_IN_BAND = 8
 
-function ClosedEvent({ event, live, notice }: { event: EventData; live: UseEvent; notice: ReactNode }) {
+function ClosedEvent({ event, live, notice, titleRef }: ViewProps) {
   const { headline } = summarise(event)
   const organiser = organiserOf(event)
   const count = event.participants.length
@@ -238,6 +260,7 @@ function ClosedEvent({ event, live, notice }: { event: EventData; live: UseEvent
   return (
     <div className="page page--bar">
       <Band
+        titleRef={titleRef}
         eyebrow={event.title}
         title={headline}
         status={t('result.status')}

@@ -29,6 +29,21 @@ describe('OrganiserPanel', () => {
     await waitFor(() => expect(onClose).toHaveBeenCalledOnce())
   })
 
+  it('gives the focus back to the button that asked, on cancel and on a refusal', async () => {
+    const onClose = vi.fn().mockRejectedValue(new ApiError('network', 0))
+    render(<OrganiserPanel event={fixtureEvent('Giulia', { can_manage: true })} onClose={onClose} onReopen={vi.fn()} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Chiudi la votazione' }))
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Sì, chiudi' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Annulla' }))
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Chiudi la votazione' }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Chiudi la votazione' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Sì, chiudi' }))
+    await screen.findByRole('alert')
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Chiudi la votazione' })))
+  })
+
   it('reopens a closed voting at once', async () => {
     const onReopen = vi.fn().mockResolvedValue(undefined)
     render(<OrganiserPanel event={closedFixtureEvent('Giulia', { can_manage: true })} onClose={vi.fn()} onReopen={onReopen} />)

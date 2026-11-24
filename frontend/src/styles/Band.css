@@ -106,3 +106,8 @@
     line-height: 1.1;
   }
 }
+
+/* The title takes the focus when the page changes under the person; it is not a control. */
+.band__title:focus {
+  outline: none;
+}
