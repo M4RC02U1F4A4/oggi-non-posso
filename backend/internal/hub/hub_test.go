@@ -29,15 +29,15 @@ func wantNothing(t *testing.T, ch <-chan Update) {
 
 func TestSubscribersReceive(t *testing.T) {
 	h := New()
-	first, cancelFirst := h.Subscribe("k7Qm2xVd9LpA")
-	second, cancelSecond := h.Subscribe("k7Qm2xVd9LpA")
+	first, cancelFirst := h.Subscribe("3f2b8c1e-9a47-4d0b-8e65-1c7a2f9d4b10")
+	second, cancelSecond := h.Subscribe("3f2b8c1e-9a47-4d0b-8e65-1c7a2f9d4b10")
 	other, cancelOther := h.Subscribe("anotherEvent")
 	defer cancelSecond()
 	defer cancelOther()
 
 	by := "Zr4h1TqPwm"
 	sent := Update{Version: 13, Kind: KindAbsences, By: &by}
-	h.Publish("k7Qm2xVd9LpA", sent)
+	h.Publish("3f2b8c1e-9a47-4d0b-8e65-1c7a2f9d4b10", sent)
 
 	for _, ch := range []<-chan Update{first, second} {
 		if got := receive(t, ch); got != sent {
@@ -49,7 +49,7 @@ func TestSubscribersReceive(t *testing.T) {
 	// A cancelled subscriber receives nothing more; the other still does.
 	cancelFirst()
 	cancelFirst() // cancelling twice is harmless
-	h.Publish("k7Qm2xVd9LpA", Update{Version: 14, Kind: KindStatus})
+	h.Publish("3f2b8c1e-9a47-4d0b-8e65-1c7a2f9d4b10", Update{Version: 14, Kind: KindStatus})
 	wantNothing(t, first)
 	if got := receive(t, second); got.Version != 14 {
 		t.Fatalf("received %+v, want version 14", got)
@@ -58,14 +58,14 @@ func TestSubscribersReceive(t *testing.T) {
 
 func TestSlowSubscriberKeepsOnlyTheNewest(t *testing.T) {
 	h := New()
-	slow, cancel := h.Subscribe("k7Qm2xVd9LpA")
+	slow, cancel := h.Subscribe("3f2b8c1e-9a47-4d0b-8e65-1c7a2f9d4b10")
 	defer cancel()
 
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
 		for v := int64(1); v <= 100; v++ {
-			h.Publish("k7Qm2xVd9LpA", Update{Version: v, Kind: KindAbsences})
+			h.Publish("3f2b8c1e-9a47-4d0b-8e65-1c7a2f9d4b10", Update{Version: v, Kind: KindAbsences})
 		}
 	}()
 	select {
@@ -83,11 +83,11 @@ func TestSlowSubscriberKeepsOnlyTheNewest(t *testing.T) {
 func TestNewestIsTheHighestVersion(t *testing.T) {
 	// Two changes can be published in the opposite order of their versions.
 	h := New()
-	slow, cancel := h.Subscribe("k7Qm2xVd9LpA")
+	slow, cancel := h.Subscribe("3f2b8c1e-9a47-4d0b-8e65-1c7a2f9d4b10")
 	defer cancel()
 
-	h.Publish("k7Qm2xVd9LpA", Update{Version: 8, Kind: KindStatus})
-	h.Publish("k7Qm2xVd9LpA", Update{Version: 7, Kind: KindAbsences})
+	h.Publish("3f2b8c1e-9a47-4d0b-8e65-1c7a2f9d4b10", Update{Version: 8, Kind: KindStatus})
+	h.Publish("3f2b8c1e-9a47-4d0b-8e65-1c7a2f9d4b10", Update{Version: 7, Kind: KindAbsences})
 	if got := receive(t, slow); got.Version != 8 || got.Kind != KindStatus {
 		t.Fatalf("received %+v, want version 8", got)
 	}
@@ -100,12 +100,12 @@ func TestNothingIsLeftAfterCancel(t *testing.T) {
 
 	var cancels []func()
 	for range 10 {
-		_, cancel := h.Subscribe("k7Qm2xVd9LpA")
+		_, cancel := h.Subscribe("3f2b8c1e-9a47-4d0b-8e65-1c7a2f9d4b10")
 		cancels = append(cancels, cancel)
 		_, cancel = h.Subscribe("anotherEvent")
 		cancels = append(cancels, cancel)
 	}
-	h.Publish("k7Qm2xVd9LpA", Update{Version: 2, Kind: KindStatus})
+	h.Publish("3f2b8c1e-9a47-4d0b-8e65-1c7a2f9d4b10", Update{Version: 2, Kind: KindStatus})
 	if got := len(h.subscribers); got != 2 {
 		t.Fatalf("%d events have subscribers, want 2", got)
 	}
@@ -120,7 +120,7 @@ func TestNothingIsLeftAfterCancel(t *testing.T) {
 		t.Fatalf("goroutines: %d before, %d after", before, after)
 	}
 	// Publishing to an event nobody watches is fine and leaves no entry.
-	h.Publish("k7Qm2xVd9LpA", Update{Version: 3, Kind: KindStatus})
+	h.Publish("3f2b8c1e-9a47-4d0b-8e65-1c7a2f9d4b10", Update{Version: 3, Kind: KindStatus})
 	if got := len(h.subscribers); got != 0 {
 		t.Fatalf("Publish left %d map entries", got)
 	}
@@ -134,13 +134,13 @@ func TestConcurrentUse(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			for v := int64(1); v <= 200; v++ {
-				h.Publish("k7Qm2xVd9LpA", Update{Version: v, Kind: KindAbsences})
+				h.Publish("3f2b8c1e-9a47-4d0b-8e65-1c7a2f9d4b10", Update{Version: v, Kind: KindAbsences})
 			}
 		}()
 		go func() {
 			defer wg.Done()
 			for range 50 {
-				ch, cancel := h.Subscribe("k7Qm2xVd9LpA")
+				ch, cancel := h.Subscribe("3f2b8c1e-9a47-4d0b-8e65-1c7a2f9d4b10")
 				if i%2 == 0 {
 					select {
 					case <-ch:

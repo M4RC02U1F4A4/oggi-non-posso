@@ -19,12 +19,14 @@ import (
 // countingHub is a hub that knows how many subscriptions are open.
 type countingHub struct {
 	*hub.Hub
-	open atomic.Int32
+	open       atomic.Int32 // subscriptions open now
+	subscribed atomic.Int32 // subscriptions ever made
 }
 
 func (c *countingHub) Subscribe(eventID string) (<-chan Update, func()) {
 	ch, cancel := c.Hub.Subscribe(eventID)
 	c.open.Add(1)
+	c.subscribed.Add(1)
 	var once atomic.Bool
 	return ch, func() {
 		if once.CompareAndSwap(false, true) {
@@ -223,7 +225,7 @@ func TestStreamPing(t *testing.T) {
 
 func TestStreamUnknownEvent(t *testing.T) {
 	s := newStreamHarness(t, time.Hour)
-	res := s.request("GET", "/api/events/nosuchevent0/stream", nil, creds{})
+	res := s.request("GET", "/api/events/9d2c7f40-5b1e-4c3a-a6f8-0e1d2c3b4a59/stream", nil, creds{})
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusNotFound {
@@ -238,6 +240,18 @@ func TestStreamUnknownEvent(t *testing.T) {
 	}
 	if got := s.hub.open.Load(); got != 0 {
 		t.Fatalf("%d subscriptions left open by a 404", got)
+	}
+}
+
+func TestStreamOfAnIDThatIsNotAUUID(t *testing.T) {
+	s := newStreamHarness(t, time.Hour)
+	res := s.request("GET", "/api/events/k7Qm2xVd9LpA/stream", nil, creds{})
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404", res.StatusCode)
+	}
+	if got := s.hub.subscribed.Load(); got != 0 {
+		t.Fatalf("%d subscriptions were made for an id that is not a UUID", got)
 	}
 }
 

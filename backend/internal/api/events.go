@@ -13,11 +13,9 @@ import (
 	"github.com/M4RC02U1F4A4/oggi-non-posso/backend/internal/token"
 )
 
-// Lengths of the random identifiers.
-const (
-	eventIDLength       = 12
-	participantIDLength = 10
-)
+// participantIDLength is the length of a participant's random id. Event
+// ids are UUIDs: they are the unique part of the share link.
+const participantIDLength = 10
 
 // ---- the event object -------------------------------------------------
 
@@ -143,9 +141,11 @@ func (a *api) createEvent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	participantToken := token.NewSecret(participantPrefix)
-	organiserKey := token.NewSecret(organiserPrefix)
+	// The organiser key is a UUID as well: it is the last segment of the
+	// organiser link.
+	organiserKey := token.NewUUID()
 	ev, err := a.store.CreateEvent(r.Context(), store.NewEvent{
-		ID:               token.NewID(eventIDLength),
+		ID:               token.NewUUID(),
 		Title:            title,
 		OrganiserKeyHash: token.Hash(organiserKey),
 		Days:             days,
@@ -344,7 +344,13 @@ func (a *api) removeParticipant(w http.ResponseWriter, r *http.Request) {
 // answers the request itself, and reports false, when the event does not
 // exist or can not be read.
 func (a *api) load(w http.ResponseWriter, r *http.Request) (domain.Event, caller, bool) {
-	ev, err := a.store.GetEvent(r.Context(), r.PathValue("id"))
+	id := r.PathValue("id")
+	if !token.IsUUID(id) {
+		// Not the id of any event: no need to ask the database.
+		notFound(w)
+		return domain.Event{}, caller{}, false
+	}
+	ev, err := a.store.GetEvent(r.Context(), id)
 	if err != nil {
 		a.fail(w, r, storeError(err))
 		return domain.Event{}, caller{}, false

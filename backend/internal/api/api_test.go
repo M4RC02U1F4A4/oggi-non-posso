@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,9 +14,12 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/M4RC02U1F4A4/oggi-non-posso/backend/internal/hub"
+	"github.com/M4RC02U1F4A4/oggi-non-posso/backend/internal/store"
 	"github.com/M4RC02U1F4A4/oggi-non-posso/backend/internal/store/sqlite"
 )
 
@@ -288,6 +292,12 @@ func deref(s *string) string {
 	return *s
 }
 
+// Well-formed identifiers that belong to nothing.
+const (
+	unknownEvent = "9d2c7f40-5b1e-4c3a-a6f8-0e1d2c3b4a59"
+	unknownKey   = "5a1f0c9e-3b7d-4e2a-9c48-6d0f1e2a3b4c"
+)
+
 // ---- shape ------------------------------------------------------------
 
 func TestCreateEvent(t *testing.T) {
@@ -321,14 +331,15 @@ func TestCreateEvent(t *testing.T) {
 	res.decode(&out)
 	ev := out.Event
 
-	if !regexp.MustCompile(`^[A-Za-z0-9]{12}$`).MatchString(ev.ID) {
-		t.Errorf("id = %q", ev.ID)
+	uuid := regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
+	if !uuid.MatchString(ev.ID) {
+		t.Errorf("id = %q, want a version 4 UUID", ev.ID)
 	}
 	if !regexp.MustCompile(`^p_[A-Za-z0-9_-]{43}$`).MatchString(out.ParticipantToken) {
 		t.Errorf("participant_token = %q", out.ParticipantToken)
 	}
-	if !regexp.MustCompile(`^o_[A-Za-z0-9_-]{43}$`).MatchString(out.OrganiserKey) {
-		t.Errorf("organiser_key = %q", out.OrganiserKey)
+	if !uuid.MatchString(out.OrganiserKey) || out.OrganiserKey == ev.ID {
+		t.Errorf("organiser_key = %q, want a version 4 UUID of its own", out.OrganiserKey)
 	}
 	if ev.Title != "Cena di dicembre" || ev.Status != "open" || ev.Version != 1 {
 		t.Errorf("title %q, status %q, version %d", ev.Title, ev.Status, ev.Version)
@@ -474,7 +485,11 @@ func TestGetEvent(t *testing.T) {
 	t.Run("foreign and unknown credentials are ignored", func(t *testing.T) {
 		for _, c := range []creds{
 			{token: other.ParticipantToken, key: other.OrganiserKey},
-			{token: "p_unknown", key: "o_unknown"},
+			{token: "p_unknown", key: unknownKey},
+			{key: "o_unknown"},
+			{key: strings.ToUpper(created.OrganiserKey)},
+			{key: "{" + created.OrganiserKey + "}"},
+			{key: id},                                                    // the event id is not the key
 			{token: created.OrganiserKey, key: created.ParticipantToken}, // swapped
 			{token: "nonsense", key: "nonsense"},
 		} {
@@ -783,7 +798,10 @@ func TestCloseNeedsOrganiser(t *testing.T) {
 			"participant token as key":  {key: created.ParticipantToken},
 			"nothing":                   {},
 			"key of another event":      {key: other.OrganiserKey},
-			"unknown key":               {key: "o_unknown"},
+			"unknown key":               {key: unknownKey},
+			"key that is not a UUID":    {key: "o_unknown"},
+			"key in upper case":         {key: strings.ToUpper(created.OrganiserKey)},
+			"the event id as the key":   {key: created.Event.ID},
 			"organiser key as a bearer": {token: created.OrganiserKey},
 		} {
 			t.Run(action+" with "+name, func(t *testing.T) {
@@ -891,7 +909,7 @@ func TestRemovedParticipantToken(t *testing.T) {
 func TestUnknownEvent(t *testing.T) {
 	h := newHarness(t)
 	created := h.create()
-	const id = "nosuchevent0"
+	const id = unknownEvent
 	// Valid credentials of another event must not change the answer.
 	for _, c := range []creds{{}, {token: created.ParticipantToken, key: created.OrganiserKey}} {
 		for _, req := range []struct {
@@ -909,6 +927,99 @@ func TestUnknownEvent(t *testing.T) {
 				h.do(req.method, req.path, req.body, c).wantError(http.StatusNotFound, "not_found")
 			})
 		}
+	}
+}
+
+// noStore is a store that can not be asked anything: every call panics.
+type noStore struct{ store.Store }
+
+func TestEventIDThatIsNotAUUID(t *testing.T) {
+	// An id that is not a canonical lower-case UUID can not be an event:
+	// the answer is 404 and the database is not asked.
+	h := newHarness(t, func(o *Options) {
+		o.Store = noStore{}
+		o.Updates = hub.New()
+	})
+	const real = "3f2b8c1e-9a47-4d0b-8e65-1c7a2f9d4b10"
+	for _, id := range []string{
+		"nosuchevent0",
+		"k7Qm2xVd9LpA",
+		strings.ToUpper(real),
+		"%7B" + real + "%7D", // in braces
+		strings.ReplaceAll(real, "-", ""),
+		real + "0",
+		real[:35],
+		"3f2b8c1e-9a47-4d0b-8e65-1c7a2f9d4b1g",
+		"urn:uuid:" + real,
+	} {
+		for _, req := range []struct {
+			method, path string
+			body         any
+		}{
+			{"GET", "/api/events/" + id, nil},
+			{"POST", "/api/events/" + id + "/participants", map[string]string{"name": "Luca"}},
+			{"PUT", "/api/events/" + id + "/absences", change{Set: []pair{{"2026-12-12", "dinner"}}}},
+			{"POST", "/api/events/" + id + "/close", nil},
+			{"POST", "/api/events/" + id + "/reopen", nil},
+			{"DELETE", "/api/events/" + id + "/participants/Zr4h1TqPwm", nil},
+			{"GET", "/api/events/" + id + "/stream", nil},
+		} {
+			t.Run(req.method+" "+req.path, func(t *testing.T) {
+				c := creds{token: "p_unknown", key: unknownKey}
+				h.do(req.method, req.path, req.body, c).wantError(http.StatusNotFound, "not_found")
+			})
+		}
+	}
+}
+
+// keyCounter counts how often the store is asked about an organiser key.
+type keyCounter struct {
+	store.Store
+	asked atomic.Int32
+}
+
+func (k *keyCounter) IsOrganiserKey(ctx context.Context, eventID, keyHash string) (bool, error) {
+	k.asked.Add(1)
+	return k.Store.IsOrganiserKey(ctx, eventID, keyHash)
+}
+
+func TestOrganiserKeyThatIsNotAUUID(t *testing.T) {
+	counter := &keyCounter{}
+	h := newHarness(t, func(o *Options) {
+		counter.Store = o.Store
+		o.Store = counter
+	})
+	created := h.create()
+	id := created.Event.ID
+
+	// Treated as if the header were not there: nothing is looked up.
+	for _, key := range []string{
+		"o_unknown",
+		"nonsense",
+		strings.ToUpper(created.OrganiserKey),
+		"{" + created.OrganiserKey + "}",
+		strings.ReplaceAll(created.OrganiserKey, "-", ""),
+		" " + created.OrganiserKey + "x",
+		created.ParticipantToken,
+	} {
+		if ev := h.do("GET", "/api/events/"+id, nil, creds{key: key}).event(http.StatusOK); ev.CanManage {
+			t.Fatalf("key %q can manage", key)
+		}
+		h.do("POST", "/api/events/"+id+"/close", nil, creds{key: key}).wantError(http.StatusUnauthorized, "unauthorized")
+	}
+	if got := counter.asked.Load(); got != 0 {
+		t.Fatalf("the store was asked about %d keys that are not UUIDs", got)
+	}
+
+	// A UUID is looked up, and only the right one manages.
+	if ev := h.do("GET", "/api/events/"+id, nil, creds{key: unknownKey}).event(http.StatusOK); ev.CanManage {
+		t.Fatal("an unknown key can manage")
+	}
+	if ev := h.do("GET", "/api/events/"+id, nil, creds{key: created.OrganiserKey}).event(http.StatusOK); !ev.CanManage {
+		t.Fatal("the organiser key can not manage")
+	}
+	if got := counter.asked.Load(); got != 2 {
+		t.Fatalf("the store was asked %d times, want 2", got)
 	}
 }
 
@@ -1023,7 +1134,7 @@ func TestNoStore(t *testing.T) {
 		{"POST", "/api/events", `{`, creds{}, 400},
 		{"POST", "/api/events", map[string]any{}, creds{}, 422},
 		{"GET", "/api/events/" + id, nil, creds{}, 200},
-		{"GET", "/api/events/nosuchevent0", nil, creds{}, 404},
+		{"GET", "/api/events/9d2c7f40-5b1e-4c3a-a6f8-0e1d2c3b4a59", nil, creds{}, 404},
 		{"POST", "/api/events/" + id + "/participants", map[string]string{"name": "Luca"}, creds{}, 201},
 		{"POST", "/api/events/" + id + "/participants", map[string]string{"name": "Luca"}, creds{}, 409},
 		{"PUT", "/api/events/" + id + "/absences", change{Set: []pair{{"2026-12-12", "dinner"}}}, organiser, 200},

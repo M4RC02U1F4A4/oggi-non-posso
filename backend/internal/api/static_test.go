@@ -82,7 +82,12 @@ func TestStaticFiles(t *testing.T) {
 		}
 	})
 	t.Run("the routes of the app fall back to the index", func(t *testing.T) {
-		for _, path := range []string{"/e/k7Qm2xVd9LpA", "/e/k7Qm2xVd9LpA/", "/anything/else", "/assets", "/assets/"} {
+		for _, path := range []string{
+			"/e/3f2b8c1e-9a47-4d0b-8e65-1c7a2f9d4b10",
+			"/e/3f2b8c1e-9a47-4d0b-8e65-1c7a2f9d4b10/",
+			"/e/3f2b8c1e-9a47-4d0b-8e65-1c7a2f9d4b10/o/5a1f0c9e-3b7d-4e2a-9c48-6d0f1e2a3b4c", // the organiser link
+			"/anything/else", "/assets", "/assets/",
+		} {
 			res := h.do("GET", path, nil, creds{})
 			if res.status != http.StatusOK || string(res.body) != indexHTML {
 				t.Fatalf("GET %s = %d %q", path, res.status, res.body)
@@ -113,7 +118,7 @@ func TestStaticDoesNotHideTheAPI(t *testing.T) {
 	h := staticHarness(t)
 	id := h.create().Event.ID
 
-	for _, path := range []string{"/api/nope", "/api", "/api/", "/api/events/nosuchevent0", "/api/events/" + id + "/nope"} {
+	for _, path := range []string{"/api/nope", "/api", "/api/", "/api/events/9d2c7f40-5b1e-4c3a-a6f8-0e1d2c3b4a59", "/api/events/" + id + "/nope"} {
 		res := h.do("GET", path, nil, creds{})
 		res.wantError(http.StatusNotFound, "not_found")
 		if got := res.header.Get("Cache-Control"); got != "no-store" {
@@ -159,5 +164,5 @@ func TestStaticNeverLeavesTheDirectory(t *testing.T) {
 func TestStaticDirWithoutIndex(t *testing.T) {
 	h := newHarness(t, func(o *Options) { o.StaticDir = t.TempDir() })
 	h.do("GET", "/", nil, creds{}).wantError(http.StatusNotFound, "not_found")
-	h.do("GET", "/e/k7Qm2xVd9LpA", nil, creds{}).wantError(http.StatusNotFound, "not_found")
+	h.do("GET", "/e/3f2b8c1e-9a47-4d0b-8e65-1c7a2f9d4b10", nil, creds{}).wantError(http.StatusNotFound, "not_found")
 }

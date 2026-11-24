@@ -9,11 +9,11 @@ import (
 	"github.com/M4RC02U1F4A4/oggi-non-posso/backend/internal/token"
 )
 
-// Credentials travel in headers only, each with its own prefix.
+// Credentials travel in headers only. A participant token carries a
+// prefix; an organiser key is a bare UUID.
 const (
 	organiserKeyHeader = "X-Organiser-Key"
 	participantPrefix  = "p_"
-	organiserPrefix    = "o_"
 )
 
 // caller is who a request comes from, as far as one event is concerned.
@@ -38,7 +38,9 @@ func (a *api) identify(r *http.Request, eventID string) (caller, error) {
 		}
 	}
 
-	if key := r.Header.Get(organiserKeyHeader); strings.HasPrefix(key, organiserPrefix) {
+	// A key that is not written as a UUID can not be a key: it counts as
+	// absent and nothing is looked up.
+	if key := r.Header.Get(organiserKeyHeader); token.IsUUID(key) {
 		ok, err := a.store.IsOrganiserKey(r.Context(), eventID, token.Hash(key))
 		switch {
 		case err == nil:

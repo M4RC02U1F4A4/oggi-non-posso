@@ -30,7 +30,7 @@ func TestSecurityHeadersOnTheAPI(t *testing.T) {
 		status       int
 	}{
 		{"GET", "/api/events/" + id, 200},
-		{"GET", "/api/events/nosuchevent0", 404},
+		{"GET", "/api/events/9d2c7f40-5b1e-4c3a-a6f8-0e1d2c3b4a59", 404},
 		{"POST", "/api/events", 400},
 		{"GET", "/api/nope", 404},
 		{"GET", "/healthz", 200},
@@ -91,7 +91,7 @@ func TestRateLimitOnCreation(t *testing.T) {
 		h.do("POST", "/api/events", dinner(), creds{from: "192.0.2.1:9"}).wantError(http.StatusTooManyRequests, "rate_limited")
 	})
 	t.Run("reading is not limited", func(t *testing.T) {
-		h.do("GET", "/api/events/nosuchevent0", nil, creds{}).wantError(http.StatusNotFound, "not_found")
+		h.do("GET", "/api/events/9d2c7f40-5b1e-4c3a-a6f8-0e1d2c3b4a59", nil, creds{}).wantError(http.StatusNotFound, "not_found")
 	})
 	t.Run("Retry-After is rounded up to a whole second", func(t *testing.T) {
 		h.clock.advance(50*time.Minute - 1500*time.Millisecond)

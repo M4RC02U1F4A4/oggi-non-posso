@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/M4RC02U1F4A4/oggi-non-posso/backend/internal/hub"
+	"github.com/M4RC02U1F4A4/oggi-non-posso/backend/internal/token"
 )
 
 const (
@@ -29,6 +30,10 @@ type Subscriber interface {
 // when they see a version newer than theirs.
 func (a *api) stream(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
+	if !token.IsUUID(id) {
+		notFound(w)
+		return
+	}
 
 	// Subscribe before reading the version: a change that lands between
 	// the two is then announced twice instead of never.

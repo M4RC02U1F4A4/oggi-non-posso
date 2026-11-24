@@ -8,7 +8,7 @@ import (
 // event builds an event from days and, per participant, the pairs they are
 // absent on. Participant ids are their names, to keep expectations readable.
 func event(days []Day, names []string, absences map[string][]Pair) Event {
-	e := Event{ID: "k7Qm2xVd9LpA", Title: "Cena di dicembre", Status: "closed", Days: days}
+	e := Event{ID: "3f2b8c1e-9a47-4d0b-8e65-1c7a2f9d4b10", Title: "Cena di dicembre", Status: "closed", Days: days}
 	for i, n := range names {
 		e.Participants = append(e.Participants, Participant{
 			ID: n, Name: n, Organiser: i == 0, Absences: absences[n],
