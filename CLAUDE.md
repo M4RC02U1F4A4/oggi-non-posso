@@ -92,8 +92,22 @@ on both sides.
 ## Repository layout
 
 - `CLAUDE.md` — this file.
-- `backend/` — the Go service; `frontend/` — the single-page app. Their
-  inner layout is in the plan and grows with the code.
+- `backend/` — the Go service (module `.../oggi-non-posso/backend`):
+  `cmd/oggi-non-posso` (wiring, signals, exit codes: 0 stop, 1 runtime,
+  2 configuration), `internal/config` (`ONP_` variables), `internal/domain`
+  (slots, validation, alternatives: pure), `internal/token` (ids and
+  credentials), `internal/store` (the interface) and `internal/store/sqlite`
+  (the only SQL, with `migrations/NNNN_name.sql`), `internal/hub` (fan-out
+  for the stream), `internal/ratelimit`, `internal/api` (routes, handlers,
+  middleware, static files), `internal/cleanup` (retention).
+- `frontend/` — the single-page app: `src/api` (the contract as types, the
+  client), `src/lib` (pure logic: slots, dates, grid, result, credentials),
+  `src/i18n` (`it.ts` is the only place with interface text), `src/hooks`
+  (`useEvent`, `useEventStream`), `src/components`, `src/pages`,
+  `src/styles` (`tokens.css` holds colours for light and dark).
+- `Dockerfile`, `.dockerignore` — one image: the binary plus the built
+  frontend. `.env.example` — every `ONP_` variable. `README.md` — what it
+  is, how to run it, the configuration table.
 - `docs/superpowers/specs/` — design documents; `docs/superpowers/plans/`
   — implementation plans. Internal, not user documentation.
 - `.gitignore` — keeps `local/`, databases, builds and `.env` out of git.
@@ -134,6 +148,15 @@ that adds it.
    desktop, light and dark.
 7. **Stop what you start.** A server or a binary started for a test is
    stopped when the test is over.
+
+## Checks
+
+- Backend, from `backend/`: `gofmt -l .` prints nothing, `go vet ./...`,
+  `go test ./... -race`.
+- Frontend, from `frontend/`: `npm run typecheck`, `npm test -- --run`,
+  `npm run build`.
+- A new configuration variable goes in `internal/config`, `.env.example`,
+  the README table and the design document, in the same commit.
 
 ## When in doubt
 
