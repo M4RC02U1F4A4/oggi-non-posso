@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"net/url"
 	"sort"
+	"sync"
 	"time"
 
 	_ "modernc.org/sqlite" // the database/sql driver, pure Go
@@ -25,6 +26,11 @@ import (
 
 // Store is a store.Store on a SQLite file.
 type Store struct {
+	// wmu lets one writing transaction in at a time. SQLite has one writer
+	// anyway, but its busy handler is not fair: without the queue a single
+	// client marking in a loop can starve every other writer until the busy
+	// timeout, and they fail.
+	wmu sync.Mutex
 	db  *sql.DB
 	now func() time.Time
 }
@@ -80,6 +86,8 @@ type querier interface {
 
 // write runs fn in a writing transaction and commits when fn succeeds.
 func (s *Store) write(ctx context.Context, fn func(tx *sql.Tx) error) error {
+	s.wmu.Lock()
+	defer s.wmu.Unlock()
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
