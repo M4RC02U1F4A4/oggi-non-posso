@@ -215,7 +215,13 @@ The frontend maps codes to its own text; `message` is for logs and curl.
 | `GET /api/events/{id}/stream` | — | — | server-sent events |
 | `GET /healthz` | — | — | `200 ok` (plain text) |
 
-Every returned event is written for the caller (`me`, `can_manage`).
+Every returned event is written for the caller (`me`, `can_manage`). The
+event returned by a creation has `me` set to the organiser and `can_manage`
+true; the event returned by a join has `me` set to the new participant.
+
+An event starts at version 1. An accepted `PUT absences` bumps the version
+even when it changes nothing; a close or reopen that changes nothing does
+not. A method or path the table does not list is `404 not_found`.
 
 Validation:
 
@@ -256,8 +262,8 @@ timestamps, text keys):
 
 - `events(id, title, status, organiser_key_hash, version, last_day, created_at, closed_at)`
 - `candidates(event_id, day, slot)` — primary key on all three
-- `participants(id, event_id, name, name_key, token_hash, organiser, created_at)` — unique `(event_id, name_key)`
-- `absences(participant_id, event_id, day, slot)` — primary key `(participant_id, day, slot)`
+- `participants(id, event_id, name, name_key, token_hash, organiser, join_order, created_at)` — unique `(event_id, name_key)` and `(event_id, join_order)`; `join_order` is the position in the joining order, which a timestamp in seconds can not give
+- `absences(participant_id, event_id, day, slot)` — primary key `(participant_id, day, slot)`, and a foreign key to `candidates` so the database itself refuses an absence on a pair that is not a candidate
 - `schema_migrations(version)` — applied migrations
 
 Only the store package speaks SQL. Deleting an event removes everything
