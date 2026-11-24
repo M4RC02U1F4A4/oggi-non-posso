@@ -86,6 +86,7 @@ func run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	}()
 
 	live := hub.New()
+	streamsDone := make(chan struct{})
 	handler := api.New(api.Options{
 		Store:           st,
 		Notifier:        live,
@@ -95,11 +96,13 @@ func run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		RateLimit:       cfg.RateLimit,
 		ClientIPHeader:  cfg.ClientIPHeader,
 		StaticDir:       cfg.StaticDir,
+		Shutdown:        streamsDone,
 	})
 
-	// background ends with ctx: it stops the retention job and, as the
-	// base of every request, ends the streams, which would otherwise keep
-	// the shutdown waiting for ever.
+	// background ends with ctx: it stops the retention job. Requests are
+	// not tied to it, so the ones in flight at a signal get the shutdown
+	// timeout to finish; the streams, which never finish on their own, are
+	// ended through shutdown when the server starts shutting down.
 	background, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -117,12 +120,17 @@ func run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	srv := &http.Server{
 		Handler:           handler,
 		ReadHeaderTimeout: 10 * time.Second,
-		IdleTimeout:       2 * time.Minute,
+		// Bounds a body that never arrives, also on routes that do not read
+		// it. Go lifts the read deadline once a handler holds the connection
+		// open for a stream, so streams are not cut by it.
+		ReadTimeout: 30 * time.Second,
+		IdleTimeout: 2 * time.Minute,
 		// No write timeout: a stream stays open for as long as its client.
 		// The stream sets a deadline on each of its writes.
-		BaseContext: func(net.Listener) context.Context { return background },
-		ErrorLog:    slog.NewLogLogger(log.Handler(), slog.LevelWarn),
+		ErrorLog: slog.NewLogLogger(log.Handler(), slog.LevelWarn),
 	}
+
+	srv.RegisterOnShutdown(func() { close(streamsDone) })
 
 	serveErr := make(chan error, 1)
 	go func() { serveErr <- srv.Serve(ln) }()

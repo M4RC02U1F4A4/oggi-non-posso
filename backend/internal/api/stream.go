@@ -94,6 +94,8 @@ func (a *api) stream(w http.ResponseWriter, r *http.Request) {
 		select {
 		case <-r.Context().Done():
 			return
+		case <-a.shutdown:
+			return
 		case u := <-updates:
 			if err := send(u); err != nil {
 				return

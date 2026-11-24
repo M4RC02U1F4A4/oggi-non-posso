@@ -38,6 +38,9 @@ type Options struct {
 	// PingInterval is the time between two comment lines on an idle
 	// stream; zero means 25 seconds.
 	PingInterval time.Duration
+	// Shutdown, when closed, ends every open stream. Requests in flight are
+	// not affected. It may be nil: streams then end only with their client.
+	Shutdown <-chan struct{}
 	// RateLimit turns on the limits on creating events and joining.
 	RateLimit bool
 	// ClientIPHeader names the header that holds the client address behind
@@ -55,6 +58,7 @@ type api struct {
 	log             *slog.Logger
 	updates         Subscriber
 	pingInterval    time.Duration
+	shutdown        <-chan struct{}
 	clientIPHeader  string
 	staticDir       string
 	creations       *ratelimit.Limiter // nil when rate limits are off
@@ -77,6 +81,7 @@ func build(o Options, now func() time.Time) *api {
 		log:             o.Logger,
 		updates:         o.Updates,
 		pingInterval:    o.PingInterval,
+		shutdown:        o.Shutdown,
 		clientIPHeader:  o.ClientIPHeader,
 		staticDir:       o.StaticDir,
 		streams:         ratelimit.NewGate(ratelimit.MaxStreamsPerKey, ratelimit.MaxStreams),
