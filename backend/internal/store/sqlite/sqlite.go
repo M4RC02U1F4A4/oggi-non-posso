@@ -159,7 +159,7 @@ func (s *Store) GetEvent(ctx context.Context, id string) (domain.Event, error) {
 func (s *Store) AddParticipant(ctx context.Context, eventID string, p store.NewParticipant, max int) (domain.Event, error) {
 	var ev domain.Event
 	err := s.write(ctx, func(tx *sql.Tx) error {
-		status, err := eventStatus(ctx, tx, eventID)
+		status, err := lockEvent(ctx, tx, eventID)
 		if err != nil {
 			return err
 		}
@@ -167,10 +167,9 @@ func (s *Store) AddParticipant(ctx context.Context, eventID string, p store.NewP
 			return store.ErrClosed
 		}
 
-		// The writing transaction holds the write lock, so nobody can take
-		// the name or the last place between these checks and the insert.
-		// On a database with concurrent writers the unique constraint on
-		// (event_id, name_key) is what guarantees it.
+		// lockEvent holds the event's row, so nobody can take the name, the
+		// last place or the next join order between these checks and the
+		// insert; the unique constraints are the last line of defence.
 		var taken int
 		if err := tx.QueryRowContext(ctx,
 			`SELECT COUNT(*) FROM participants WHERE event_id = $1 AND name_key = $2`,
@@ -239,7 +238,7 @@ func (s *Store) IsOrganiserKey(ctx context.Context, eventID, keyHash string) (bo
 func (s *Store) ChangeAbsences(ctx context.Context, eventID, participantID string, set, clear []domain.Pair) (domain.Event, error) {
 	var ev domain.Event
 	err := s.write(ctx, func(tx *sql.Tx) error {
-		status, err := eventStatus(ctx, tx, eventID)
+		status, err := lockEvent(ctx, tx, eventID)
 		if err != nil {
 			return err
 		}
@@ -289,7 +288,7 @@ func (s *Store) SetStatus(ctx context.Context, eventID, status string) (domain.E
 		changed bool
 	)
 	err := s.write(ctx, func(tx *sql.Tx) error {
-		current, err := eventStatus(ctx, tx, eventID)
+		current, err := lockEvent(ctx, tx, eventID)
 		if err != nil {
 			return err
 		}
@@ -387,6 +386,26 @@ func insertParticipant(ctx context.Context, q querier, eventID string, p store.N
 func bumpVersion(ctx context.Context, q querier, eventID string) error {
 	_, err := q.ExecContext(ctx, `UPDATE events SET version = version + 1 WHERE id = $1`, eventID)
 	return err
+}
+
+// lockEvent locks the event's row for the rest of the transaction and
+// returns its status, or store.ErrNotFound. The UPDATE changes nothing; it is
+// there for its lock. SQLite has one writer anyway, but on PostgreSQL it
+// makes every writer of one event wait for the previous one, so a check
+// (status, name taken, places left, the next join order) still holds when
+// the write that depends on it lands. SELECT ... FOR UPDATE would do the same
+// on PostgreSQL, and SQLite rejects it.
+func lockEvent(ctx context.Context, tx *sql.Tx, eventID string) (string, error) {
+	res, err := tx.ExecContext(ctx, `UPDATE events SET version = version WHERE id = $1`, eventID)
+	if err != nil {
+		return "", err
+	}
+	if n, err := res.RowsAffected(); err != nil {
+		return "", err
+	} else if n == 0 {
+		return "", store.ErrNotFound
+	}
+	return eventStatus(ctx, tx, eventID)
 }
 
 // eventStatus returns the status of an event, or store.ErrNotFound.
