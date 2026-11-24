@@ -205,6 +205,7 @@ export const it = {
   'copy.failed': 'Copia non riuscita: seleziona il link e copialo a mano.',
 
   // The organiser's controls.
+  'organiser.label': 'Per chi organizza',
   'organiser.close': 'Chiudi la votazione',
   'organiser.closeHelp':
     'Dopo la chiusura nessuno può più segnare e tutti vedono le alternative. Puoi sempre riaprirla.',

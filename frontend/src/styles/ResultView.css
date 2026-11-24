@@ -1,0 +1,174 @@
+.result {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: 28px;
+  padding-top: 14px;
+  padding-bottom: 32px;
+}
+
+.result__list {
+  padding: 0;
+  list-style: none;
+}
+
+/* On the phone the band already says "Ci siete tutti": keep the rule, not the words. */
+.result__free-title {
+  padding: 0;
+}
+
+.result__free-title span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* A moment everyone can make. */
+.result__free {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 12px;
+  align-items: baseline;
+  border-top: 1px solid var(--rule-strong);
+  padding: 9px 0 8px;
+}
+
+.result__free:first-child {
+  border-top: 0;
+}
+
+.result__free b {
+  font-family: var(--font-display);
+  font-size: 2.125rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.result__free b small {
+  margin-left: 8px;
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
+.result__free span {
+  grid-column: 1;
+  font-size: 1.0625rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.result__free em {
+  grid-row: 1 / 3;
+  grid-column: 2;
+  align-self: center;
+  padding: 3px 9px;
+  background: var(--yellow);
+  color: var(--black);
+  font-size: 0.9375rem;
+  font-style: normal;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.result__rest--after {
+  margin-top: 14px;
+}
+
+/* A moment with someone missing. */
+.result__near {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr) auto;
+  column-gap: 8px;
+  border-top: 1px solid var(--rule);
+  padding: 6px 0;
+  font-size: 0.9375rem;
+  line-height: 1.4;
+}
+
+.result__list--month .result__near {
+  grid-template-columns: 96px minmax(0, 1fr) auto;
+}
+
+.result__near b {
+  font-weight: 600;
+}
+
+.result__near em {
+  color: var(--mute);
+  font-style: normal;
+  text-align: right;
+}
+
+.result__calendar .section-title {
+  scroll-margin-top: 12px;
+}
+
+.result__calendar .section-title:focus {
+  outline: none;
+}
+
+.result__note {
+  margin-top: 12px;
+  color: var(--mute);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+@media (min-width: 900px) {
+  .result {
+    grid-template-columns: minmax(0, 1fr) clamp(280px, 26vw, 330px);
+    column-gap: clamp(32px, 4vw, 52px);
+    align-items: start;
+    padding-top: 26px;
+    padding-bottom: 56px;
+  }
+
+  .result__free-title {
+    padding: 7px 0;
+  }
+
+  .result__free-title span {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
+  }
+
+  .result__free,
+  .result__free:first-child {
+    grid-template-columns: clamp(190px, 18vw, 230px) minmax(0, 1fr) auto;
+    border-top: 1px solid var(--rule-strong);
+    padding: 13px 0 12px;
+  }
+
+  .result__free b {
+    font-size: clamp(2.25rem, 3.4vw, 2.75rem);
+  }
+
+  .result__free span {
+    grid-column: auto;
+    font-size: 1.375rem;
+  }
+
+  .result__free em {
+    grid-row: auto;
+    grid-column: auto;
+    align-self: baseline;
+  }
+
+  .result__rest--after {
+    margin-top: 22px;
+  }
+
+  .result__near,
+  .result__list--month .result__near {
+    grid-template-columns: clamp(190px, 18vw, 230px) minmax(0, 1fr) auto;
+    padding: 7px 0;
+    font-size: 1rem;
+  }
+}

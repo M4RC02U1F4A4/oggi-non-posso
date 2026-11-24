@@ -4,7 +4,9 @@ import type { EventData } from '../api/types'
 import { Band } from '../components/Band'
 import { BottomBar } from '../components/BottomBar'
 import { JoinForm } from '../components/JoinForm'
+import { OrganiserPanel } from '../components/OrganiserPanel'
 import { PeoplePanel } from '../components/PeoplePanel'
+import { CALENDAR_ID, ResultView } from '../components/ResultView'
 import { ShareBox } from '../components/ShareBox'
 import { VoteTable } from '../components/VoteTable'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
@@ -12,6 +14,7 @@ import { useEvent, type UseEvent } from '../hooks/useEvent'
 import { joinList, t } from '../i18n'
 import { readOrganiserFragment, stripOrganiserFragment } from '../lib/credentials'
 import { countMarked, findParticipant, organiserOf } from '../lib/grid'
+import { summarise } from '../lib/result'
 import { NotFoundPage } from './NotFoundPage'
 import '../styles/EventPage.css'
 
@@ -69,7 +72,7 @@ function EventView({ id }: { id: string }) {
   return live.event.status === 'open' ? (
     <OpenEvent event={live.event} live={live} notice={notice} />
   ) : (
-    <ClosedEvent event={live.event} notice={notice} />
+    <ClosedEvent event={live.event} live={live} notice={notice} />
   )
 }
 
@@ -166,9 +169,18 @@ function OpenEvent({ event, live, notice }: { event: EventData; live: UseEvent; 
         </div>
 
         <aside className="event__side">
-          <PeoplePanel event={event} marking={live.marking} saveState={live.saveState} />
+          <PeoplePanel
+            event={event}
+            marking={live.marking}
+            saveState={live.saveState}
+            onRemove={event.can_manage ? live.remove : undefined}
+          />
           <div className="event__box">
-            <ShareBox eventId={event.id} />
+            {event.can_manage ? (
+              <OrganiserPanel event={event} onClose={live.close} onReopen={live.reopen} />
+            ) : (
+              <ShareBox eventId={event.id} />
+            )}
           </div>
         </aside>
       </main>
@@ -185,18 +197,48 @@ function OpenEvent({ event, live, notice }: { event: EventData; live: UseEvent; 
   )
 }
 
-// The closed event gets its own view with the alternatives; until then,
-// the table to look at.
-function ClosedEvent({ event, notice }: { event: EventData; notice: ReactNode }) {
+/** Above this many people the band counts them without naming them. */
+const MAX_NAMES_IN_BAND = 8
+
+function ClosedEvent({ event, live, notice }: { event: EventData; live: UseEvent; notice: ReactNode }) {
+  const { headline } = summarise(event)
+  const organiser = organiserOf(event)
+  const count = event.participants.length
+  const names = event.participants.map((p) => p.name).join(t('list.separator'))
+
+  const showCalendar = () => {
+    const calendar = document.getElementById(CALENDAR_ID)
+    calendar?.scrollIntoView({ block: 'start' })
+    calendar?.focus({ preventScroll: true })
+  }
+
   return (
-    <div className="page">
-      <Band title={event.title} status={t('result.status')} />
+    <div className="page page--bar">
+      <Band
+        eyebrow={event.title}
+        title={headline}
+        status={t('result.status')}
+        wide={
+          <>
+            {organiser && t('result.closedBy', { name: organiser.name })}{' '}
+            {count > MAX_NAMES_IN_BAND ? t('result.peopleMany', { count }) : t('result.people', { count, names })}
+          </>
+        }
+      />
       {notice}
-      <main className="wrap event">
-        <div className="event__table">
-          <VoteTable event={event} mode="read" />
-        </div>
-      </main>
+      <ResultView event={event}>
+        {event.can_manage && (
+          <div className="event__box">
+            <OrganiserPanel event={event} onClose={live.close} onReopen={live.reopen} />
+          </div>
+        )}
+      </ResultView>
+      <BottomBar>
+        <button type="button" onClick={showCalendar}>
+          {t('bar.calendar')}
+        </button>
+        {organiser && <span className="bar__accent">{t('bar.closedBy', { name: organiser.name })}</span>}
+      </BottomBar>
     </div>
   )
 }

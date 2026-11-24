@@ -35,15 +35,40 @@
   font-weight: 400;
 }
 
-.people__state {
+.people__end {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
   margin-left: auto;
-  color: var(--mute);
   font-size: 0.875rem;
+}
+
+.people__state {
+  color: var(--mute);
   font-weight: 400;
   text-align: right;
 }
 
-.people .tag-now {
-  margin-left: auto;
+.people__remove {
+  font-weight: 500;
+}
+
+/* "Remove Luca?": takes the whole width under the row it is about. */
+.people__confirm {
+  display: flex;
+  flex-wrap: wrap;
+  flex-basis: 100%;
+  align-items: baseline;
+  gap: 4px 16px;
+  margin-top: 6px;
   font-size: 0.875rem;
+}
+
+.people__confirm p {
+  flex-basis: 100%;
+  font-weight: 600;
+}
+
+.people__error {
+  margin-top: 12px;
 }

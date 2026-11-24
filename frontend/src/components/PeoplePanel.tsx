@@ -1,4 +1,5 @@
-import type { EventData, Participant } from '../api/types'
+import { useState } from 'react'
+import { errorCode, type ErrorCode, type EventData, type Participant } from '../api/types'
 import type { SaveState } from '../hooks/useEvent'
 import { t } from '../i18n'
 import { countMarked } from '../lib/grid'
@@ -10,6 +11,8 @@ interface PeoplePanelProps {
   marking: Set<string>
   /** Whether the caller's own marks reached the server. */
   saveState: SaveState
+  /** Given to the organiser only: removes a participant, after asking. */
+  onRemove?: (participantId: string) => Promise<void>
 }
 
 function role(participant: Participant, me: string | null): string | null {
@@ -20,7 +23,25 @@ function role(participant: Participant, me: string | null): string | null {
 }
 
 /** Who is in, how many slots each one marked, and who is marking right now. */
-export function PeoplePanel({ event, marking, saveState }: PeoplePanelProps) {
+export function PeoplePanel({ event, marking, saveState, onRemove }: PeoplePanelProps) {
+  const [confirming, setConfirming] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<ErrorCode | null>(null)
+
+  const remove = async (participantId: string) => {
+    if (!onRemove) return
+    setBusy(true)
+    setError(null)
+    try {
+      await onRemove(participantId)
+    } catch (err) {
+      setError(errorCode(err))
+    } finally {
+      setBusy(false)
+      setConfirming(null)
+    }
+  }
+
   return (
     <section className="people">
       <h2 className="people__title">{t('people.title', { count: event.participants.length })}</h2>
@@ -29,29 +50,68 @@ export function PeoplePanel({ event, marking, saveState }: PeoplePanelProps) {
           const mine = participant.id === event.me
           const count = countMarked(event, participant.id)
           const tag = role(participant, event.me)
+          // The organiser's own participant can not be removed.
+          const removable = onRemove !== undefined && !participant.organiser
           return (
             <li className="people__row" key={participant.id}>
               <span className="people__who">
                 {participant.name}
                 {tag && <small>{tag}</small>}
               </span>
-              {!mine && marking.has(participant.id) ? (
-                <span className="tag-now">{t('people.marking')}</span>
-              ) : (
-                <span className="people__state">
-                  {!mine
-                    ? t('people.slots', { count })
-                    : saveState === 'saving'
-                      ? t('people.slotsSaving')
-                      : saveState === 'failed'
-                        ? t('people.slotsFailed')
-                        : t('people.slotsSaved', { count })}
-                </span>
+              <span className="people__end">
+                {!mine && marking.has(participant.id) ? (
+                  <span className="tag-now">{t('people.marking')}</span>
+                ) : (
+                  <span className="people__state">
+                    {!mine
+                      ? t('people.slots', { count })
+                      : saveState === 'saving'
+                        ? t('people.slotsSaving')
+                        : saveState === 'failed'
+                          ? t('people.slotsFailed')
+                          : t('people.slotsSaved', { count })}
+                  </span>
+                )}
+                {removable && confirming !== participant.id && (
+                  <button
+                    type="button"
+                    className="link-btn people__remove"
+                    aria-label={t('people.removeLabel', { name: participant.name })}
+                    onClick={() => {
+                      setError(null)
+                      setConfirming(participant.id)
+                    }}
+                  >
+                    {t('people.remove')}
+                  </button>
+                )}
+              </span>
+              {removable && confirming === participant.id && (
+                <div className="people__confirm" role="group" aria-label={t('people.removeLabel', { name: participant.name })}>
+                  <p>{t('people.removeConfirm', { name: participant.name })}</p>
+                  <button
+                    type="button"
+                    className="link-btn"
+                    disabled={busy}
+                    autoFocus
+                    onClick={() => void remove(participant.id)}
+                  >
+                    {t('people.removeYes')}
+                  </button>
+                  <button type="button" className="link-btn" disabled={busy} onClick={() => setConfirming(null)}>
+                    {t('common.cancel')}
+                  </button>
+                </div>
               )}
             </li>
           )
         })}
       </ul>
+      {error !== null && (
+        <p className="alert people__error" role="alert">
+          {t(`error.${error}`)}
+        </p>
+      )}
     </section>
   )
 }

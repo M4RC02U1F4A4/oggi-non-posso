@@ -1,0 +1,59 @@
+.org {
+  border: 2px solid var(--rule-strong);
+  padding: 14px;
+}
+
+.org__help {
+  margin-top: 10px;
+  color: var(--mute);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.org__confirm p {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.org__choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.org__choices .btn {
+  flex: 1;
+  padding-inline: 12px;
+}
+
+.org__error {
+  margin-top: 12px;
+}
+
+.org__link {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-top: 12px;
+  border-top: 1px solid var(--rule);
+  padding-top: 12px;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.org__link span {
+  min-width: 0;
+}
+
+.org__link b {
+  display: block;
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.org__link .link-btn {
+  flex: none;
+}

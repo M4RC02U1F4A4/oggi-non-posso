@@ -232,6 +232,8 @@ button.vt__daybtn:focus-visible {
 .vt--mini {
   --vt-day: 54px;
   --vt-row: 46px;
+  /* It sits right under a section title, which already draws the rule. */
+  border-top: 0;
 }
 
 .vt--mini .vt__head {
