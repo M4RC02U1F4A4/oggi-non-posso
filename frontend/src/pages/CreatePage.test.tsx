@@ -1,9 +1,10 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, useLocation, type InitialEntry } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as client from '../api/client'
 import { ApiError } from '../api/types'
 import * as credentials from '../lib/credentials'
+import { setVisibility } from '../test/eventSource'
 import { EVENT_ID, ORGANISER_KEY, fixtureEvent } from '../test/fixture'
 import { CreatePage } from './CreatePage'
 
@@ -182,6 +183,34 @@ describe('after creating', () => {
     window.localStorage.clear()
     open(entry)
     expect(screen.getByRole('button', { name: 'Crea e prendi il link' })).toBeDefined()
+  })
+})
+
+describe('while creating', () => {
+  it('says it is busy, and takes no second tap', async () => {
+    let answer!: (value: Awaited<ReturnType<typeof client.createEvent>>) => void
+    createEvent.mockReturnValue(new Promise((resolve) => (answer = resolve)))
+    open()
+    fill('Rimpatriata di dicembre', 'Giulia')
+    pickDay('sabato 28 novembre 2026')
+    submit()
+
+    const button = await screen.findByRole('button', { name: 'Creo l’evento…' })
+    expect(button).toHaveProperty('disabled', true)
+    fireEvent.click(button)
+    expect(createEvent).toHaveBeenCalledOnce()
+
+    answer({ event: fixtureEvent('Giulia', { can_manage: true }), participant_token: 'p_giulia', organiser_key: KEY })
+    await screen.findByText('Fatto. Ora manda il link')
+  })
+
+  it('moves "today" on when the page comes back after midnight', () => {
+    open()
+    expect(screen.getByRole('button', { name: 'martedì 24 novembre 2026' })).toHaveProperty('disabled', false)
+
+    vi.setSystemTime(new Date(2026, 10, 25, 7, 0))
+    act(() => setVisibility('visible'))
+    expect(screen.getByRole('button', { name: 'martedì 24 novembre 2026: già passato' })).toHaveProperty('disabled', true)
   })
 })
 

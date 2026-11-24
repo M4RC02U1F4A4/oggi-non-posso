@@ -285,6 +285,7 @@ export const it = {
   'create.perDay.last': '{day}, {slot}: è l’unica fascia rimasta',
   'create.note': 'Niente account. Ti diamo un link da mandare agli altri e uno solo tuo per chiudere la votazione.',
   'create.submit': 'Crea e prendi il link',
+  'create.submitting': 'Creo l’evento…',
   'create.error.title': 'Scrivi cosa organizzi.',
   'create.error.titleLong': 'Troppo lungo: al massimo 80 caratteri.',
   'create.error.name': 'Scrivi come ti chiami.',

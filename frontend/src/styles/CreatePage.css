@@ -62,8 +62,11 @@
   box-shadow: none;
 }
 
+/* While the event is being created. The bar stays opaque over the page; its text fades. */
 .create__submit:disabled {
   opacity: 1;
+  color: color-mix(in srgb, var(--bar-accent) 55%, var(--bar-bg));
+  cursor: progress;
 }
 
 .created {
@@ -183,6 +186,7 @@
 
   .create__submit:disabled {
     opacity: 0.55;
+    color: var(--action-text);
   }
 
   .created {

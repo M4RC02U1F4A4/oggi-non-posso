@@ -64,7 +64,7 @@ function CreateForm({ onCreated }: { onCreated: (created: Created) => void }) {
   const [errors, setErrors] = useState<FieldErrors>({})
   const [failure, setFailure] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [today] = useState(() => todayISO())
+  const [today, setToday] = useState(() => todayISO())
   const titleRef = useRef<HTMLInputElement>(null)
   const nameRef = useRef<HTMLInputElement>(null)
   const daysRef = useRef<HTMLDivElement>(null)
@@ -73,6 +73,15 @@ function CreateForm({ onCreated }: { onCreated: (created: Created) => void }) {
   const nameId = useId()
   const titleErrorId = useId()
   const nameErrorId = useId()
+
+  // A page left open overnight, or brought back from another tab, has a new "today".
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') setToday(todayISO())
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => document.removeEventListener('visibilitychange', onVisibility)
+  }, [])
 
   useEffect(() => {
     if (failure !== null) failureRef.current?.scrollIntoView({ block: 'center' })
@@ -196,7 +205,7 @@ function CreateForm({ onCreated }: { onCreated: (created: Created) => void }) {
               </p>
             )}
             <button type="submit" className="btn create__submit" disabled={busy}>
-              {t('create.submit')}
+              {t(busy ? 'create.submitting' : 'create.submit')}
             </button>
           </div>
         </div>
