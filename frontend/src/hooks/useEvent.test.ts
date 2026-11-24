@@ -5,7 +5,7 @@ import { ApiError, type EventData } from '../api/types'
 import * as credentials from '../lib/credentials'
 import { isAbsent } from '../lib/grid'
 import { FakeEventSource, installFakeEventSource, setVisibility } from '../test/eventSource'
-import { closedFixtureEvent, fixtureEvent, idOf } from '../test/fixture'
+import { EVENT_ID, ORGANISER_KEY, OTHER_KEY, closedFixtureEvent, fixtureEvent, idOf } from '../test/fixture'
 import { useEvent } from './useEvent'
 
 vi.mock('../api/client', async (original) => ({
@@ -24,7 +24,7 @@ const changeAbsences = vi.mocked(client.changeAbsences)
 const closeEvent = vi.mocked(client.closeEvent)
 const removeParticipant = vi.mocked(client.removeParticipant)
 
-const ID = 'k7Qm2xVd9LpA'
+const ID = EVENT_ID
 const DINNER = { date: '2026-12-12', slot: 'dinner' } as const
 
 /** A promise the test settles when it wants to. */
@@ -82,7 +82,7 @@ afterEach(() => {
 describe('loading', () => {
   it('fetches the event with the stored credentials and opens the stream', async () => {
     credentials.saveParticipant(ID, 'p_anna')
-    credentials.saveOrganiser(ID, 'o_key')
+    credentials.saveOrganiser(ID, ORGANISER_KEY)
     getEvent.mockResolvedValue(fixtureEvent('Anna'))
 
     const { result } = renderHook(() => useEvent(ID))
@@ -90,7 +90,7 @@ describe('loading', () => {
     expect(FakeEventSource.instances).toHaveLength(0)
     await settle()
 
-    expect(getEvent).toHaveBeenCalledWith(ID, { participant: 'p_anna', organiser: 'o_key' })
+    expect(getEvent).toHaveBeenCalledWith(ID, { participant: 'p_anna', organiser: ORGANISER_KEY })
     expect(result.current.state).toBe('ready')
     expect(result.current.event?.me).toBe(idOf('Anna'))
     expect(result.current.saveState).toBe('saved')
@@ -337,7 +337,7 @@ describe('marking', () => {
   })
 
   it('keeps knowing it organises after marking', async () => {
-    credentials.saveOrganiser(ID, 'o_key')
+    credentials.saveOrganiser(ID, ORGANISER_KEY)
     getEvent.mockResolvedValue(fixtureEvent('Anna', { can_manage: true }))
     changeAbsences.mockResolvedValue(marked(41, { can_manage: false }))
     const { result } = await mount()
@@ -386,7 +386,7 @@ describe('joining', () => {
 describe('organising', () => {
   beforeEach(() => {
     credentials.saveParticipant(ID, 'p_giulia')
-    credentials.saveOrganiser(ID, 'o_key')
+    credentials.saveOrganiser(ID, ORGANISER_KEY)
     getEvent.mockResolvedValue(fixtureEvent('Giulia', { can_manage: true }))
   })
 
@@ -396,7 +396,7 @@ describe('organising', () => {
 
     await act(() => result.current.close())
 
-    expect(closeEvent).toHaveBeenCalledWith(ID, 'o_key')
+    expect(closeEvent).toHaveBeenCalledWith(ID, ORGANISER_KEY)
     expect(result.current.event?.status).toBe('closed')
     expect(result.current.event?.me).toBe(idOf('Giulia'))
     expect(result.current.event?.can_manage).toBe(true)
@@ -412,7 +412,7 @@ describe('organising', () => {
 
     await act(() => result.current.remove(idOf('Luca')))
 
-    expect(removeParticipant).toHaveBeenCalledWith(ID, 'o_key', idOf('Luca'))
+    expect(removeParticipant).toHaveBeenCalledWith(ID, ORGANISER_KEY, idOf('Luca'))
     expect(result.current.event?.participants.map((p) => p.name)).toEqual(['Giulia', 'Anna', 'Marta', 'Paolo'])
     expect(result.current.event?.me).toBe(idOf('Giulia'))
     expect(credentials.load(ID).participant).toBe('p_giulia')
@@ -432,7 +432,7 @@ describe('organising', () => {
 })
 
 describe('organiser link', () => {
-  const CANDIDATE = 'o_candidateKeyFromALinkThatMayBeAnyones000000'
+  const CANDIDATE = 'cccccccc-dddd-4eee-8fff-000000000000'
 
   async function mountWith(candidate: string) {
     const hook = renderHook(() => useEvent(ID, candidate))
@@ -465,23 +465,23 @@ describe('organiser link', () => {
   })
 
   it('keeps a stored key that works when the link carries one that does not', async () => {
-    credentials.saveOrganiser(ID, 'o_stored')
+    credentials.saveOrganiser(ID, OTHER_KEY)
     getEvent.mockImplementation(async (_id, sent) =>
-      fixtureEvent(null, { can_manage: sent?.organiser === 'o_stored' }),
+      fixtureEvent(null, { can_manage: sent?.organiser === OTHER_KEY }),
     )
 
     const { result } = await mountWith(CANDIDATE)
 
     expect(getEvent).toHaveBeenCalledTimes(2)
     expect(getEvent).toHaveBeenNthCalledWith(1, ID, { organiser: CANDIDATE })
-    expect(getEvent).toHaveBeenNthCalledWith(2, ID, { organiser: 'o_stored' })
-    expect(credentials.load(ID)).toEqual({ organiser: 'o_stored' })
+    expect(getEvent).toHaveBeenNthCalledWith(2, ID, { organiser: OTHER_KEY })
+    expect(credentials.load(ID)).toEqual({ organiser: OTHER_KEY })
     expect(result.current.event?.can_manage).toBe(true)
     expect(result.current.organiserLinkRejected).toBe(true)
   })
 
   it('replaces a stored key with another that works too', async () => {
-    credentials.saveOrganiser(ID, 'o_stored')
+    credentials.saveOrganiser(ID, OTHER_KEY)
     getEvent.mockResolvedValue(fixtureEvent(null, { can_manage: true }))
 
     const { result } = await mountWith(CANDIDATE)
@@ -491,12 +491,12 @@ describe('organiser link', () => {
   })
 
   it('keeps the stored key when the request fails, and asks again on the next try', async () => {
-    credentials.saveOrganiser(ID, 'o_stored')
+    credentials.saveOrganiser(ID, OTHER_KEY)
     getEvent.mockRejectedValueOnce(new ApiError('network', 0))
 
     const { result } = await mountWith(CANDIDATE)
     expect(result.current.state).toBe('error')
-    expect(credentials.load(ID)).toEqual({ organiser: 'o_stored' })
+    expect(credentials.load(ID)).toEqual({ organiser: OTHER_KEY })
     expect(result.current.organiserLinkRejected).toBe(false)
 
     getEvent.mockResolvedValue(fixtureEvent(null, { can_manage: true }))

@@ -2,14 +2,14 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../api/types'
 import * as credentials from '../lib/credentials'
-import { closedFixtureEvent, fixtureEvent } from '../test/fixture'
+import { EVENT_ID, ORGANISER_KEY, closedFixtureEvent, fixtureEvent } from '../test/fixture'
 import { OrganiserPanel } from './OrganiserPanel'
 
-const KEY = 'o_l2LAqg8HSphf5JRtEpomL5quhOig2zHq9KZ24zdtHT8'
+const KEY = ORGANISER_KEY
 
 beforeEach(() => {
   window.localStorage.clear()
-  credentials.saveOrganiser('k7Qm2xVd9LpA', KEY)
+  credentials.saveOrganiser(EVENT_ID, KEY)
 })
 
 describe('OrganiserPanel', () => {
@@ -53,10 +53,10 @@ describe('OrganiserPanel', () => {
       const origin = window.location.origin
 
       fireEvent.click(screen.getByRole('button', { name: 'Copia il link per gli altri' }))
-      await waitFor(() => expect(writeText).toHaveBeenLastCalledWith(`${origin}/e/k7Qm2xVd9LpA`))
+      await waitFor(() => expect(writeText).toHaveBeenLastCalledWith(`${origin}/e/${EVENT_ID}`))
 
       fireEvent.click(screen.getByRole('button', { name: 'Copia il link per organizzare' }))
-      await waitFor(() => expect(writeText).toHaveBeenLastCalledWith(`${origin}/e/k7Qm2xVd9LpA#o=${KEY}`))
+      await waitFor(() => expect(writeText).toHaveBeenLastCalledWith(`${origin}/e/${EVENT_ID}/o/${KEY}`))
       // The key is copied, never shown.
       expect(document.body.textContent).not.toContain(KEY)
     } finally {

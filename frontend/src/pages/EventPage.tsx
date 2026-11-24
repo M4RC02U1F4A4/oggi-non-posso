@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { useParams } from 'react-router'
+import { useMatch, useNavigate, useParams } from 'react-router'
 import type { EventData } from '../api/types'
 import { Band } from '../components/Band'
 import { BottomBar } from '../components/BottomBar'
@@ -12,29 +12,52 @@ import { VoteTable } from '../components/VoteTable'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useEvent, type UseEvent } from '../hooks/useEvent'
 import { joinList, t } from '../i18n'
-import { readOrganiserFragment, stripOrganiserFragment } from '../lib/credentials'
 import { countMarked, findParticipant, organiserOf } from '../lib/grid'
 import { summarise } from '../lib/result'
+import { isUuid } from '../lib/uuid'
 import { NotFoundPage } from './NotFoundPage'
 import '../styles/EventPage.css'
 
-export function EventPage() {
-  const { id = '' } = useParams()
-  // A new id is a new event: start from nothing.
-  return <EventView key={id} id={id} />
+/** What an address said about organising, read once when the page opens. */
+interface OrganiserLink {
+  /** True when the address was an organiser link, `/e/<id>/o/<key>`. */
+  present: boolean
+  /** Its key, when it has the shape of one. Not yet known to be valid. */
+  key: string | null
 }
 
-function EventView({ id }: { id: string }) {
-  // The organiser link carries its key in the fragment. The key goes to the
-  // hook as a candidate, to be checked with the server before it is stored;
-  // the fragment leaves the address bar at once, whatever it holds.
-  const [fragment] = useState(() => readOrganiserFragment(window.location.hash))
+/**
+ * The page of an event, at `/e/<id>` and at the organiser link
+ * `/e/<id>/o/<key>`. The key of an organiser link is only a candidate (anyone
+ * can write such an address): it is checked with the server before it is
+ * stored. The address is replaced with `/e/<id>` at once, whatever the key
+ * turns out to be, so that it stays neither in the address bar nor in the
+ * history, and copying the address never hands out the organiser's rights.
+ */
+export function EventPage() {
+  const { id = '' } = useParams()
+  const organiserMatch = useMatch('/e/:id/o/:key')
+  const navigate = useNavigate()
+  const linkKey = organiserMatch?.params.key
+
   useEffect(() => {
-    stripOrganiserFragment(window.location, window.history)
-  }, [])
-  const live = useEvent(id, fragment.key)
+    if (linkKey !== undefined) void navigate(`/e/${encodeURIComponent(id)}`, { replace: true })
+  }, [linkKey, id, navigate])
+
+  // Not the shape of an event id: there is no such event, and nothing to ask.
+  if (!isUuid(id)) return <NotFoundPage kind="event" />
+
+  const link: OrganiserLink = { present: linkKey !== undefined, key: isUuid(linkKey) ? linkKey : null }
+  // A new id is a new event: start from nothing.
+  return <EventView key={id} id={id} link={link} />
+}
+
+function EventView({ id, link }: { id: string; link: OrganiserLink }) {
+  // Kept from the first render: by the next one the address has lost the key.
+  const [opened] = useState(link)
+  const live = useEvent(id, opened.key)
   useDocumentTitle(live.event?.title)
-  const badOrganiserLink = live.organiserLinkRejected || (fragment.present && fragment.key === null)
+  const badOrganiserLink = live.organiserLinkRejected || (opened.present && opened.key === null)
 
   if (live.state === 'not_found') return <NotFoundPage kind="event" />
 

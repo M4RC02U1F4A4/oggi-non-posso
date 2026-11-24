@@ -39,6 +39,13 @@ const ABSENT: Record<string, Partial<Record<Slot, string[]>>> = {
 
 const NAMES = ['Giulia', 'Luca', 'Anna', 'Marta', 'Paolo']
 
+// Ids and keys are random UUIDs; these are plainly not random.
+export const EVENT_ID = '11111111-2222-4333-8444-555555555555'
+/** The organiser key of the fixture. */
+export const ORGANISER_KEY = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
+/** Another well-formed key: one already stored, or one that is not the event's. */
+export const OTHER_KEY = '99999999-8888-4777-8666-000000000000'
+
 export const idOf = (name: string) => `id-${name.toLowerCase()}`
 
 function participant(name: string): Participant {
@@ -73,7 +80,7 @@ export const ALTERNATIVES: Alternative[] = [
 /** The open event, seen by `me` (a name) or by a visitor. */
 export function fixtureEvent(me: string | null = null, overrides: Partial<EventData> = {}): EventData {
   return {
-    id: 'k7Qm2xVd9LpA',
+    id: EVENT_ID,
     title: 'Rimpatriata di dicembre',
     status: 'open',
     version: 40,

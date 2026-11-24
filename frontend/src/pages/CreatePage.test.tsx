@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as client from '../api/client'
 import { ApiError } from '../api/types'
 import * as credentials from '../lib/credentials'
-import { fixtureEvent } from '../test/fixture'
+import { EVENT_ID, ORGANISER_KEY, fixtureEvent } from '../test/fixture'
 import { CreatePage } from './CreatePage'
 
 vi.mock('../api/client', async (original) => ({
@@ -14,8 +14,8 @@ vi.mock('../api/client', async (original) => ({
 
 const createEvent = vi.mocked(client.createEvent)
 
-const ID = 'k7Qm2xVd9LpA'
-const KEY = 'o_l2LAqg8HSphf5JRtEpomL5quhOig2zHq9KZ24zdtHT8'
+const ID = EVENT_ID
+const KEY = ORGANISER_KEY
 
 function open() {
   render(
@@ -94,11 +94,11 @@ describe('creating an event', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Copia il link' }))
     await waitFor(() => expect(writeText).toHaveBeenLastCalledWith(`${origin}/e/${ID}`))
     fireEvent.click(screen.getByRole('button', { name: 'Copia il link per organizzare' }))
-    await waitFor(() => expect(writeText).toHaveBeenLastCalledWith(`${origin}/e/${ID}#o=${KEY}`))
+    await waitFor(() => expect(writeText).toHaveBeenLastCalledWith(`${origin}/e/${ID}/o/${KEY}`))
 
-    // The organiser key is copied whole and shown with its middle left out.
+    // The organiser link is copied whole and shown with its middle left out.
     expect(document.body.textContent).not.toContain(KEY)
-    expect(document.body.textContent).toContain('#o=o_l2L…HT8')
+    expect(document.body.textContent).toContain('/e/11111111…eeee')
     expect(screen.getByText(/ti riconosce già come Giulia/)).toBeDefined()
     expect(screen.getByRole('link', { name: 'Apri l’evento e segna le tue' }).getAttribute('href')).toBe(`/e/${ID}`)
   })

@@ -7,7 +7,10 @@ export function App() {
   return (
     <Routes>
       <Route path="/" element={<CreatePage />} />
-      <Route path="/e/:id" element={<EventPage />} />
+      {/* The organiser link is the same page: it reads the key and moves to /e/:id. */}
+      <Route path="/e/:id" element={<EventPage />}>
+        <Route path="o/:key" element={null} />
+      </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   )

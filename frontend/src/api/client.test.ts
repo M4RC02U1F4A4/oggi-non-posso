@@ -8,6 +8,7 @@ import {
   removeParticipant,
   reopenEvent,
 } from './client'
+import { ORGANISER_KEY } from '../test/fixture'
 import { ApiError } from './types'
 
 const fetchMock = vi.fn<typeof fetch>()
@@ -45,10 +46,10 @@ describe('credentials', () => {
 
   it('reads an event with both credentials in their headers', async () => {
     fetchMock.mockResolvedValue(answer(200, { id: 'abc' }))
-    await getEvent('abc', { participant: 'p_token', organiser: 'o_key' })
+    await getEvent('abc', { participant: 'p_token', organiser: ORGANISER_KEY })
     const { headers } = lastCall()
     expect(headers.Authorization).toBe('Bearer p_token')
-    expect(headers['X-Organiser-Key']).toBe('o_key')
+    expect(headers['X-Organiser-Key']).toBe(ORGANISER_KEY)
   })
 
   it('marks absences as the participant', async () => {
@@ -67,20 +68,20 @@ describe('credentials', () => {
   it('closes, reopens and removes as the organiser', async () => {
     fetchMock.mockImplementation(async () => answer(200, { id: 'abc' }))
 
-    await closeEvent('abc', 'o_key')
+    await closeEvent('abc', ORGANISER_KEY)
     expect(lastCall().url).toBe('/api/events/abc/close')
     expect(lastCall().init.method).toBe('POST')
-    expect(lastCall().headers['X-Organiser-Key']).toBe('o_key')
+    expect(lastCall().headers['X-Organiser-Key']).toBe(ORGANISER_KEY)
     expect(lastCall().headers.Authorization).toBeUndefined()
 
-    await reopenEvent('abc', 'o_key')
+    await reopenEvent('abc', ORGANISER_KEY)
     expect(lastCall().url).toBe('/api/events/abc/reopen')
-    expect(lastCall().headers['X-Organiser-Key']).toBe('o_key')
+    expect(lastCall().headers['X-Organiser-Key']).toBe(ORGANISER_KEY)
 
-    await removeParticipant('abc', 'o_key', 'pid')
+    await removeParticipant('abc', ORGANISER_KEY, 'pid')
     expect(lastCall().url).toBe('/api/events/abc/participants/pid')
     expect(lastCall().init.method).toBe('DELETE')
-    expect(lastCall().headers['X-Organiser-Key']).toBe('o_key')
+    expect(lastCall().headers['X-Organiser-Key']).toBe(ORGANISER_KEY)
   })
 
   it('creates and joins without credentials', async () => {

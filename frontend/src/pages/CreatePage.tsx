@@ -180,9 +180,12 @@ function CreateForm({ onCreated }: { onCreated: (created: Created) => void }) {
   )
 }
 
-/** The key with its middle left out: enough to recognise the link, not to use it. */
-function maskKey(key: string): string {
-  return t('created.own.masked', { start: key.slice(0, 5), end: key.slice(-3) })
+/** The organiser link with its middle left out: enough to recognise it, not to use it. */
+function maskedOrganiserLink(host: string, eventId: string, key: string): string {
+  return t('created.own.masked', {
+    start: credentials.shareUrl(host, eventId.slice(0, 8)),
+    end: key.slice(-4),
+  })
 }
 
 /** Right after creating: the link for the others, the link to keep, the way in. */
@@ -230,7 +233,7 @@ function CreatedView({ created }: { created: Created }) {
             <h2 className="section-title created__title">{t('created.own.title')}</h2>
             <p className="created__text">{t('created.own.text')}</p>
             <p className="created__url created__url--quiet">
-              {credentials.organiserUrl(host, event.id, maskKey(organiserKey))}
+              {maskedOrganiserLink(host, event.id, organiserKey)}
             </p>
             <div className="created__row">
               <CopyButton
