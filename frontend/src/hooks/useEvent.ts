@@ -186,6 +186,9 @@ export function useEvent(id: string, organiserCandidate?: string | null): UseEve
           } else {
             setQueue(pendingRef.current.slice(batch.length))
             setSaveError(code)
+            // No answer, or a broken one: the marks may have arrived all the
+            // same. Show what the server really has.
+            if (code === 'network' || code === 'internal') void load()
           }
         }
       }
@@ -253,6 +256,8 @@ export function useEvent(id: string, organiserCandidate?: string | null): UseEve
     [id, manage],
   )
 
+  const refresh = useCallback(() => void load(), [load])
+
   const onUpdate = useCallback(
     (update: StreamUpdate) => {
       if (update.kind === 'absences' && update.by !== null) {
@@ -296,10 +301,11 @@ export function useEvent(id: string, organiserCandidate?: string | null): UseEve
     return () => document.removeEventListener('visibilitychange', onVisibility)
   }, [load])
 
-  useEventStream(id, onUpdate, state === 'ready')
+  // A stream that fails says nothing about why. One read tells: an event
+  // deleted meanwhile answers "not found", and the page stops asking.
+  useEventStream(id, onUpdate, state === 'ready', refresh)
 
   const event = useMemo(() => (server ? applyChanges(server, pending) : undefined), [server, pending])
-  const refresh = useCallback(() => void load(), [load])
   const saveState: SaveState = pending.length > 0 ? 'saving' : saveError !== null ? 'failed' : 'saved'
 
   return {

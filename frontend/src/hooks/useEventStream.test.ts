@@ -54,6 +54,18 @@ describe('useEventStream', () => {
     expect(FakeEventSource.open()).toHaveLength(1)
   })
 
+  it('tells the caller each time the stream fails', () => {
+    const onError = vi.fn()
+    renderHook(() => useEventStream('abc', vi.fn(), true, onError))
+    expect(onError).not.toHaveBeenCalled()
+
+    FakeEventSource.latest().fail()
+    expect(onError).toHaveBeenCalledTimes(1)
+    vi.advanceTimersByTime(1_000)
+    FakeEventSource.latest().fail()
+    expect(onError).toHaveBeenCalledTimes(2)
+  })
+
   it('starts again from a short wait once a connection opened', () => {
     renderHook(() => useEventStream('abc', vi.fn()))
     FakeEventSource.latest().fail()

@@ -130,6 +130,15 @@ describe('creating an event', () => {
 })
 
 describe('what can go wrong', () => {
+  it('says how long to wait when the server says so', async () => {
+    createEvent.mockRejectedValue(new ApiError('rate_limited', 429, undefined, 1500))
+    open()
+    fill('Rimpatriata di dicembre', 'Giulia')
+    pickDay('sabato 28 novembre 2026')
+    submit()
+    await waitFor(() => expect(screen.getByText('Troppe richieste: riprova tra 25 minuti.')).toBeDefined())
+  })
+
   it('asks for what is missing, next to its field, without calling the server', () => {
     open()
     submit()
@@ -155,7 +164,7 @@ describe('what can go wrong', () => {
   })
 
   it.each([
-    ['rate_limited', 429, 'Troppe richieste in poco tempo. Aspetta qualche minuto e riprova.'],
+    ['rate_limited', 429, 'Troppe richieste: riprova più tardi.'],
     ['network', 0, 'Non c’è collegamento. Controlla la connessione e riprova.'],
     ['validation_failed', 422, 'C’è qualcosa che non va in quello che hai scritto. Controlla e riprova.'],
   ] as const)('says in Italian what the server answered: %s', async (code, status, text) => {

@@ -27,10 +27,18 @@ function parseUpdate(data: unknown): StreamUpdate | null {
  * lets go of the stream and takes it back when it is looked at again, which
  * is also what brings a phone back after it slept.
  */
-export function useEventStream(id: string, onUpdate: (update: StreamUpdate) => void, enabled = true): void {
+export function useEventStream(
+  id: string,
+  onUpdate: (update: StreamUpdate) => void,
+  enabled = true,
+  /** Called each time the stream fails: the caller may want to look at the event itself. */
+  onError?: () => void,
+): void {
   const handler = useRef(onUpdate)
+  const errorHandler = useRef(onError)
   useEffect(() => {
     handler.current = onUpdate
+    errorHandler.current = onError
   })
 
   useEffect(() => {
@@ -68,6 +76,7 @@ export function useEventStream(id: string, onUpdate: (update: StreamUpdate) => v
         const delay = Math.min(MAX_RETRY_MS, FIRST_RETRY_MS * 2 ** attempt)
         attempt += 1
         timer = setTimeout(connect, delay)
+        errorHandler.current?.()
       }
     }
 

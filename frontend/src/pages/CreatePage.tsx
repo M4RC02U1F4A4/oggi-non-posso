@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { createEvent } from '../api/client'
-import { errorCode, type CreatedEvent, type ErrorCode } from '../api/types'
+import type { CreatedEvent } from '../api/types'
 import { Band } from '../components/Band'
 import { CopyButton } from '../components/CopyButton'
 import { DayPicker } from '../components/DayPicker'
@@ -11,6 +11,7 @@ import { t, type MessageKey } from '../i18n'
 import * as credentials from '../lib/credentials'
 import { todayISO } from '../lib/dates'
 import { EMPTY_DRAFT, toEventDays, toggleDay, toggleDaySlot, toggleEventSlot } from '../lib/draft'
+import { errorMessage } from '../lib/errors'
 import { MAX_DAYS, MAX_NAME_LENGTH, MAX_TITLE_LENGTH, countCharacters } from '../lib/limits'
 import '../styles/CreatePage.css'
 
@@ -37,7 +38,7 @@ function CreateForm({ onCreated }: { onCreated: (created: Created) => void }) {
   const [name, setName] = useState('')
   const [draft, setDraft] = useState(EMPTY_DRAFT)
   const [errors, setErrors] = useState<FieldErrors>({})
-  const [failure, setFailure] = useState<ErrorCode | null>(null)
+  const [failure, setFailure] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [today] = useState(() => todayISO())
   const titleRef = useRef<HTMLInputElement>(null)
@@ -78,7 +79,7 @@ function CreateForm({ onCreated }: { onCreated: (created: Created) => void }) {
       credentials.saveOrganiser(result.event.id, result.organiser_key)
       onCreated({ event: result.event, organiserKey: result.organiser_key, name: cleanName })
     } catch (err) {
-      setFailure(errorCode(err))
+      setFailure(errorMessage(err))
       setBusy(false)
     }
   }
@@ -167,7 +168,7 @@ function CreateForm({ onCreated }: { onCreated: (created: Created) => void }) {
             <p className="create__note">{t('create.note')}</p>
             {failure !== null && (
               <p className="alert create__failure" role="alert" ref={failureRef}>
-                {t(`error.${failure}`)}
+                {failure}
               </p>
             )}
             <button type="submit" className="btn create__submit" disabled={busy}>

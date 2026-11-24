@@ -1,6 +1,6 @@
 import { useId, useState, type FormEvent } from 'react'
-import { errorCode } from '../api/types'
 import { t } from '../i18n'
+import { errorMessage } from '../lib/errors'
 import { MAX_NAME_LENGTH, countCharacters } from '../lib/limits'
 import '../styles/JoinForm.css'
 
@@ -29,7 +29,7 @@ export function JoinForm({ onJoin }: JoinFormProps) {
       // On success the form goes away with the visitor it was for.
       await onJoin(trimmed)
     } catch (err) {
-      setError(t(`error.${errorCode(err)}`))
+      setError(errorMessage(err))
     } finally {
       setBusy(false)
     }

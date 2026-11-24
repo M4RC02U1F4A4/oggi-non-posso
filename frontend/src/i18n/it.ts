@@ -120,7 +120,11 @@ export const it = {
   'error.cannot_remove_organiser': 'Chi organizza non si può togliere.',
   'error.payload_too_large': 'Troppa roba in una volta sola. Togli qualche giorno e riprova.',
   'error.validation_failed': 'C’è qualcosa che non va in quello che hai scritto. Controlla e riprova.',
-  'error.rate_limited': 'Troppe richieste in poco tempo. Aspetta qualche minuto e riprova.',
+  'error.rate_limited': 'Troppe richieste: riprova più tardi.',
+  'error.rateLimitedWait': {
+    one: 'Troppe richieste: riprova tra un minuto.',
+    other: 'Troppe richieste: riprova tra {count} minuti.',
+  },
   'error.internal': 'Qualcosa è andato storto dalla nostra parte. Riprova tra poco.',
   'error.network': 'Non c’è collegamento. Controlla la connessione e riprova.',
 

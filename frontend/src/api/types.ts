@@ -99,12 +99,15 @@ export type ErrorCode = (typeof ERROR_CODES)[number]
 export class ApiError extends Error {
   readonly code: ErrorCode
   readonly status: number
+  /** Seconds to wait before trying again, when the answer said so (`Retry-After`). */
+  readonly retryAfter: number | undefined
 
-  constructor(code: ErrorCode, status: number, message?: string) {
+  constructor(code: ErrorCode, status: number, message?: string, retryAfter?: number) {
     super(message ?? code)
     this.name = 'ApiError'
     this.code = code
     this.status = status
+    this.retryAfter = retryAfter
   }
 }
 

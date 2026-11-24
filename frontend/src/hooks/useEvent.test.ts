@@ -183,6 +183,39 @@ describe('live updates', () => {
     expect(result.current.marking.size).toBe(0)
   })
 
+  it('reads the event once when the stream fails, and stops when the event is gone', async () => {
+    getEvent.mockResolvedValue(fixtureEvent())
+    const { result } = await mount()
+    expect(getEvent).toHaveBeenCalledTimes(1)
+
+    act(() => FakeEventSource.latest().fail())
+    await settle()
+    expect(getEvent).toHaveBeenCalledTimes(2)
+    expect(result.current.state).toBe('ready')
+
+    // The event was deleted: its stream answers 404, and so does the event.
+    await act(async () => void (await vi.advanceTimersByTimeAsync(1_000)))
+    getEvent.mockRejectedValue(new ApiError('not_found', 404))
+    act(() => FakeEventSource.latest().fail())
+    await settle()
+    expect(result.current.state).toBe('not_found')
+
+    await act(async () => void (await vi.advanceTimersByTimeAsync(120_000)))
+    expect(FakeEventSource.open()).toHaveLength(0)
+    expect(getEvent).toHaveBeenCalledTimes(3)
+  })
+
+  it('keeps the page when something in between answers 404 without the API’s body', async () => {
+    getEvent.mockResolvedValue(fixtureEvent())
+    const { result } = await mount()
+    // What the client makes of a bare 404: not "not found".
+    getEvent.mockRejectedValue(new ApiError('internal', 404))
+    act(() => result.current.refresh())
+    await settle()
+    expect(result.current.state).toBe('ready')
+    expect(FakeEventSource.open()).toHaveLength(1)
+  })
+
   it('refetches when the page becomes visible again', async () => {
     getEvent.mockResolvedValue(fixtureEvent())
     await mount()
@@ -242,6 +275,42 @@ describe('marking', () => {
     expect(result.current.saveError).toBeNull()
     await settle()
     expect(result.current.saveState).toBe('saved')
+  })
+
+  it('shows what the server really has when the outcome of a request is unknown', async () => {
+    // The mark arrived, its answer did not.
+    changeAbsences.mockRejectedValue(new ApiError('network', 0))
+    const { result } = await mount()
+    getEvent.mockResolvedValue(marked(41))
+
+    act(() => result.current.toggle([DINNER]))
+    await settle()
+
+    expect(getEvent).toHaveBeenCalledTimes(2)
+    expect(result.current.saveError).toBe('network')
+    expect(result.current.event?.version).toBe(41)
+    expect(annaAt(result.current.event, DINNER)).toBe(true)
+  })
+
+  it('does not read again for a refusal that leaves no doubt', async () => {
+    changeAbsences.mockRejectedValue(new ApiError('validation_failed', 422))
+    const { result } = await mount()
+
+    act(() => result.current.toggle([DINNER]))
+    await settle()
+    expect(result.current.saveError).toBe('validation_failed')
+    expect(getEvent).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the event and the token when a mark meets a 404 that is not the API’s', async () => {
+    changeAbsences.mockRejectedValue(new ApiError('internal', 404))
+    const { result } = await mount()
+
+    act(() => result.current.toggle([DINNER]))
+    await settle()
+    expect(result.current.state).toBe('ready')
+    expect(result.current.saveError).toBe('internal')
+    expect(credentials.load(ID).participant).toBe('p_anna')
   })
 
   it('sends the taps made while a request is in flight as one request', async () => {

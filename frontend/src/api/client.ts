@@ -11,6 +11,9 @@ import {
 
 const BASE = '/api'
 
+/** How long a request may take. One that stalls must not hold the page for ever. */
+export const REQUEST_TIMEOUT_MS = 15_000
+
 export interface RequestCredentials {
   /** Participant token, sent as `Authorization: Bearer`. */
   participant?: string
@@ -26,15 +29,17 @@ function isErrorCode(value: unknown): value is ErrorCode {
   return typeof value === 'string' && (ERROR_CODES as readonly string[]).includes(value)
 }
 
-/** The code for an error answer that carries no usable JSON body. */
+/**
+ * The code for an error answer that carries no usable JSON body: something
+ * between the browser and the backend wrote it. A bare 404 or 401 is not the
+ * backend saying that the event is gone or the token is refused (a proxy
+ * answers like that during a deploy), so neither is taken as such: the page
+ * acts on those two only when the body carries the code.
+ */
 function codeForStatus(status: number): ErrorCode {
   switch (status) {
     case 400:
       return 'invalid_request'
-    case 401:
-      return 'unauthorized'
-    case 404:
-      return 'not_found'
     case 413:
       return 'payload_too_large'
     case 422:
@@ -44,6 +49,14 @@ function codeForStatus(status: number): ErrorCode {
     default:
       return 'internal'
   }
+}
+
+/** `Retry-After` as seconds: the header holds either a number of seconds or a date. */
+function retryAfterSeconds(header: string | null): number | undefined {
+  if (header === null || header.trim() === '') return undefined
+  if (/^\s*\d+\s*$/.test(header)) return Number(header)
+  const when = Date.parse(header)
+  return Number.isNaN(when) ? undefined : Math.max(0, Math.ceil((when - Date.now()) / 1000))
 }
 
 async function request<T>(method: string, path: string, options: RequestOptions = {}): Promise<T> {
@@ -56,24 +69,39 @@ async function request<T>(method: string, path: string, options: RequestOptions 
     init.body = JSON.stringify(options.body)
   }
 
-  let response: Response
-  try {
-    response = await fetch(BASE + path, init)
-  } catch {
-    throw new ApiError('network', 0)
-  }
+  // The timeout covers the whole exchange, body included.
+  const timeout = new AbortController()
+  const timer = setTimeout(() => timeout.abort(), REQUEST_TIMEOUT_MS)
+  init.signal = timeout.signal
 
+  let response: Response
   let payload: unknown
   try {
-    payload = await response.json()
-  } catch {
-    payload = undefined
+    try {
+      response = await fetch(BASE + path, init)
+    } catch {
+      // No answer: offline, refused, or it took too long.
+      throw new ApiError('network', 0)
+    }
+    try {
+      payload = await response.json()
+    } catch {
+      if (timeout.signal.aborted) throw new ApiError('network', 0)
+      payload = undefined
+    }
+  } finally {
+    clearTimeout(timer)
   }
 
   if (!response.ok) {
     const error = (payload as { error?: { code?: unknown; message?: unknown } } | undefined)?.error
     const code = isErrorCode(error?.code) && error.code !== 'network' ? error.code : codeForStatus(response.status)
-    throw new ApiError(code, response.status, typeof error?.message === 'string' ? error.message : undefined)
+    throw new ApiError(
+      code,
+      response.status,
+      typeof error?.message === 'string' ? error.message : undefined,
+      retryAfterSeconds(response.headers.get('Retry-After')),
+    )
   }
   if (payload === undefined) throw new ApiError('internal', response.status)
   return payload as T
