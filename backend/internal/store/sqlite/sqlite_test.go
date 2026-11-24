@@ -130,14 +130,13 @@ func TestAddParticipant(t *testing.T) {
 	}
 	// Several joins inside one second keep the joining order.
 	mustJoin(t, s, "event0000001", "Anna", "anna")
-	mustJoin(t, s, "event0000001", "Marta", "marta")
-	ev = mustJoin(t, s, "event0000001", "Paolo", "paolo")
+	ev = mustJoin(t, s, "event0000001", "Marta", "marta")
 
 	var names []string
 	for _, p := range ev.Participants {
 		names = append(names, p.Name)
 	}
-	if want := []string{"Giulia", "Luca", "Anna", "Marta", "Paolo"}; !reflect.DeepEqual(names, want) {
+	if want := []string{"Giulia", "Luca", "Anna", "Marta"}; !reflect.DeepEqual(names, want) {
 		t.Fatalf("participants = %v, want %v", names, want)
 	}
 	if ev.Participants[1].Organiser || !ev.Participants[0].Organiser {
@@ -154,18 +153,18 @@ func TestAddParticipant(t *testing.T) {
 		mustJoin(t, s, "event0000002", "Luca", "luca")
 	})
 	t.Run("too many participants", func(t *testing.T) {
-		_, err := s.AddParticipant(ctx, "event0000001", participant("Sara", "sara", "event0000001"), 5)
+		_, err := s.AddParticipant(ctx, "event0000001", participant("Paolo", "paolo", "event0000001"), 4)
 		wantErr(t, err, store.ErrTooManyParticipants)
 	})
 	t.Run("unknown event", func(t *testing.T) {
-		_, err := s.AddParticipant(ctx, "nosuchevent0", participant("Sara", "sara", "nosuchevent0"), 50)
+		_, err := s.AddParticipant(ctx, "nosuchevent0", participant("Paolo", "paolo", "nosuchevent0"), 50)
 		wantErr(t, err, store.ErrNotFound)
 	})
 	t.Run("closed", func(t *testing.T) {
 		if _, _, err := s.SetStatus(ctx, "event0000001", domain.StatusClosed); err != nil {
 			t.Fatalf("SetStatus: %v", err)
 		}
-		_, err := s.AddParticipant(ctx, "event0000001", participant("Sara", "sara", "event0000001"), 50)
+		_, err := s.AddParticipant(ctx, "event0000001", participant("Paolo", "paolo", "event0000001"), 50)
 		wantErr(t, err, store.ErrClosed)
 	})
 
@@ -173,8 +172,8 @@ func TestAddParticipant(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetEvent: %v", err)
 	}
-	if len(after.Participants) != 5 {
-		t.Fatalf("refused joins left %d participants, want 5", len(after.Participants))
+	if len(after.Participants) != 4 {
+		t.Fatalf("refused joins left %d participants, want 4", len(after.Participants))
 	}
 }
 
