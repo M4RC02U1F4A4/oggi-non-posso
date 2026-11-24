@@ -1,0 +1,98 @@
+/* Design tokens. Colours and type come from the design document's "Look";
+   the dark values follow the dark mockup: black surfaces, a yellow band,
+   "you can't" cells inverted, count greys that get lighter with more people. */
+
+:root {
+  color-scheme: light dark;
+
+  --yellow: #ffd100;
+  --black: #000000;
+  --white: #ffffff;
+
+  /* Surfaces and text */
+  --bg: #ffffff;
+  --text: #000000;
+  --mute: #5e5e5a;
+  --placeholder: #8a8a85;
+  --off: #a5a5a0;
+  --disabled: #b4b4ae;
+
+  /* Rules: strong for the timetable's frame, soft between columns */
+  --rule-strong: #000000;
+  --rule: #bdbdb8;
+
+  /* How many people can't: one, two, three or more */
+  --count-1: #f0f0ee;
+  --count-2: #dededb;
+  --count-3: #c8c8c4;
+
+  /* "You can't" */
+  --mine-bg: #000000;
+  --mine-text: #ffffff;
+  --mine-label: #ffd100;
+  --mine-rule: #6a6a6a;
+
+  /* The band and what sits on yellow */
+  --band-bg: #ffd100;
+  --band-text: #000000;
+
+  /* Primary buttons and the bar at the bottom of the phone layout */
+  --action-bg: #000000;
+  --action-text: #ffd100;
+  --bar-bg: #000000;
+  --bar-text: #ffffff;
+  --bar-accent: #ffd100;
+
+  /* Switched-on choices (picked days, slots in play) */
+  --on-bg: #000000;
+  --on-text: #ffffff;
+  --on-accent: #ffd100;
+
+  --focus-outer: var(--text);
+  --focus-inner: var(--bg);
+
+  --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --font-body: 'Barlow', system-ui, sans-serif;
+
+  --gutter: 18px;
+  --page-max: 1280px;
+}
+
+@media (min-width: 900px) {
+  :root {
+    --gutter: 48px;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e0e0d;
+    --text: #f4f4f1;
+    --mute: #a3a39c;
+    --placeholder: #8a8a85;
+    --off: #6f6f69;
+    --disabled: #5c5c57;
+
+    --rule-strong: #f4f4f1;
+    --rule: #4a4a45;
+
+    --count-1: #232321;
+    --count-2: #32322f;
+    --count-3: #44443f;
+
+    --mine-bg: #f4f4f1;
+    --mine-text: #000000;
+    --mine-label: #000000;
+    --mine-rule: #b9b9b3;
+
+    --action-bg: #ffd100;
+    --action-text: #000000;
+    --bar-bg: #ffd100;
+    --bar-text: #000000;
+    --bar-accent: #000000;
+
+    --on-bg: #f4f4f1;
+    --on-text: #000000;
+    --on-accent: #000000;
+  }
+}

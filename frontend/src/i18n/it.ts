@@ -1,0 +1,295 @@
+// The Italian catalogue: every text a person reads, including accessible
+// names. A second language is a second file with the same keys.
+//
+// A value is a string, or plural forms chosen by the `count` variable
+// (`zero` when given and count is 0, `one` for 1, `other` for the rest).
+// `{name}` marks a variable. The wording never assumes the reader's gender.
+
+export interface PluralForms {
+  zero?: string
+  one: string
+  other: string
+}
+
+export type Message = string | PluralForms
+
+export const it = {
+  'app.name': 'oggi non posso',
+  'app.title': 'Oggi non posso',
+  'app.home': 'Oggi non posso, crea un evento',
+  'app.pageTitle': '{title} · Oggi non posso',
+
+  // Slots: column headers, short headers for narrow tables, inside a sentence.
+  'slot.long.morning': 'Mattina',
+  'slot.long.lunch': 'Pranzo',
+  'slot.long.afternoon': 'Pomeriggio',
+  'slot.long.dinner': 'Cena',
+  'slot.long.after_dinner': 'Dopocena',
+  'slot.short.morning': 'Matt.',
+  'slot.short.lunch': 'Pranzo',
+  'slot.short.afternoon': 'Pom.',
+  'slot.short.dinner': 'Cena',
+  'slot.short.after_dinner': 'Dopo',
+  'slot.inline.morning': 'mattina',
+  'slot.inline.lunch': 'pranzo',
+  'slot.inline.afternoon': 'pomeriggio',
+  'slot.inline.dinner': 'cena',
+  'slot.inline.after_dinner': 'dopocena',
+  'slot.allDay': 'tutto il giorno',
+
+  // Weekdays, 0 = Monday.
+  'weekday.long.0': 'lunedì',
+  'weekday.long.1': 'martedì',
+  'weekday.long.2': 'mercoledì',
+  'weekday.long.3': 'giovedì',
+  'weekday.long.4': 'venerdì',
+  'weekday.long.5': 'sabato',
+  'weekday.long.6': 'domenica',
+  'weekday.short.0': 'lun',
+  'weekday.short.1': 'mar',
+  'weekday.short.2': 'mer',
+  'weekday.short.3': 'gio',
+  'weekday.short.4': 'ven',
+  'weekday.short.5': 'sab',
+  'weekday.short.6': 'dom',
+
+  'month.long.1': 'gennaio',
+  'month.long.2': 'febbraio',
+  'month.long.3': 'marzo',
+  'month.long.4': 'aprile',
+  'month.long.5': 'maggio',
+  'month.long.6': 'giugno',
+  'month.long.7': 'luglio',
+  'month.long.8': 'agosto',
+  'month.long.9': 'settembre',
+  'month.long.10': 'ottobre',
+  'month.long.11': 'novembre',
+  'month.long.12': 'dicembre',
+  'month.short.1': 'gen',
+  'month.short.2': 'feb',
+  'month.short.3': 'mar',
+  'month.short.4': 'apr',
+  'month.short.5': 'mag',
+  'month.short.6': 'giu',
+  'month.short.7': 'lug',
+  'month.short.8': 'ago',
+  'month.short.9': 'set',
+  'month.short.10': 'ott',
+  'month.short.11': 'nov',
+  'month.short.12': 'dic',
+
+  // Dates.
+  'date.dayLong': '{weekday} {day}',
+  'date.dayLongMonth': '{weekday} {day} {month}',
+  'date.dayShort': '{weekday} {day}',
+  'date.dayShortMonth': '{weekday} {day} {month}',
+  'date.full': '{weekday} {day} {month} {year}',
+  'date.month': '{month}',
+  'date.monthYear': '{month} {year}',
+
+  // Lists and small numbers written as words.
+  'list.separator': ', ',
+  'list.last': '{head} e {last}',
+  'number.2': 'due',
+  'number.3': 'tre',
+  'number.4': 'quattro',
+  'number.5': 'cinque',
+  'number.6': 'sei',
+  'number.7': 'sette',
+  'number.8': 'otto',
+  'number.9': 'nove',
+  'number.10': 'dieci',
+
+  'common.cancel': 'Annulla',
+  'common.loading': 'Un attimo…',
+  'common.retry': 'Riprova',
+
+  // One text for every error code of the API.
+  'error.invalid_request': 'La richiesta non è arrivata bene. Ricarica la pagina e riprova.',
+  'error.unauthorized': 'Da questo browser non si può più fare. Ricarica la pagina.',
+  'error.not_found': 'Questo evento non c’è più.',
+  'error.event_closed': 'La votazione è chiusa.',
+  'error.name_taken': 'C’è già qualcuno con questo nome. Scrivine uno diverso, magari con l’iniziale del cognome.',
+  'error.too_many_participants': 'In questo evento non c’è più posto: troppe persone hanno già segnato.',
+  'error.cannot_remove_organiser': 'Chi organizza non si può togliere.',
+  'error.payload_too_large': 'Troppa roba in una volta sola. Togli qualche giorno e riprova.',
+  'error.validation_failed': 'C’è qualcosa che non va in quello che hai scritto. Controlla e riprova.',
+  'error.rate_limited': 'Troppe richieste in poco tempo. Aspetta qualche minuto e riprova.',
+  'error.internal': 'Qualcosa è andato storto dalla nostra parte. Riprova tra poco.',
+  'error.network': 'Non c’è collegamento. Controlla la connessione e riprova.',
+
+  // The event page while the voting is open.
+  'event.status.open': 'Votazione aperta',
+  'event.tagline.participant': 'Segna quando non puoi. Quello che resta è la data buona.',
+  'event.tagline.organiser': 'Sei tu che organizzi: quando avete segnato tutti, chiudi la votazione.',
+  'event.tagline.short': 'Segna quando non puoi.',
+  'event.tagline.visitor': '{name} cerca una data.',
+  'event.loadFailed': 'L’evento non si carica',
+  'event.saveFailed': 'Non salvato. {reason}',
+  'event.removed': 'Chi organizza ha tolto il tuo nome: per segnare di nuovo, scrivilo ancora.',
+
+  'people.title': { one: 'Ha segnato una persona', other: 'Hanno segnato in {count}' },
+  'people.count': { one: 'Ha segnato una persona', other: 'Hanno segnato in {count}' },
+  'people.already': { one: 'Ha già segnato una persona.', other: 'Hanno già segnato in {count}.' },
+  'people.you': 'tu',
+  'people.organiser': 'organizza',
+  'people.youOrganiser': 'tu, organizzi',
+  'people.slots': { zero: 'nessuna fascia', one: '1 fascia', other: '{count} fasce' },
+  'people.slotsSaved': { zero: 'nessuna fascia', one: '1 fascia, salvata', other: '{count} fasce, salvate' },
+  'people.slotsSaving': 'salvo…',
+  'people.slotsFailed': 'non salvato',
+  'people.marking': 'sta segnando',
+  'people.markingNames': { one: '{names} sta segnando', other: '{names} stanno segnando' },
+  'people.remove': 'Togli',
+  'people.removeLabel': 'Togli {name}',
+  'people.removeConfirm': 'Togliere {name}? Spariscono anche le sue fasce.',
+  'people.removeYes': 'Sì, togli',
+
+  'table.label': 'Giorni e fasce',
+  'table.day': 'Giorno',
+  'table.more': { one: 'e 1 in più', other: 'e altri {count}' },
+  'cell.mine': 'Non posso',
+  'cell.aria.off': '{day}, {slot}: non in programma',
+  'cell.aria.mine': '{day}, {slot}: non puoi',
+  'cell.aria.mineOthers': {
+    one: '{day}, {slot}: non puoi. Non può nemmeno {names}',
+    other: '{day}, {slot}: non puoi. Non possono nemmeno {names}',
+  },
+  'cell.aria.free': '{day}, {slot}: puoi',
+  'cell.aria.freeOthers': {
+    one: '{day}, {slot}: puoi. Non può {names}',
+    other: '{day}, {slot}: puoi. Non possono {names}',
+  },
+  'cell.aria.readFree': '{day}, {slot}: liberi tutti',
+  'cell.aria.readMissing': {
+    one: '{day}, {slot}: non può {names}',
+    other: '{day}, {slot}: non possono {names}',
+  },
+  'day.aria.markAll': '{day}: segna tutto il giorno',
+  'day.aria.clearAll': '{day}: togli tutto il giorno',
+  'peek.free': 'Liberi tutti',
+  'peek.onlyYou': 'Non puoi solo tu',
+  'peek.missing': { one: 'Non può {names}', other: 'Non possono {names}' },
+
+  'legend.mine': 'non puoi tu',
+  'legend.others.light': 'non può qualcun altro, più scuro se sono in tanti',
+  'legend.others.dark': 'non può qualcun altro, più chiaro se sono in tanti',
+  'legend.othersRead.light': 'qualcuno non può, più scuro se sono in tanti',
+  'legend.othersRead.dark': 'qualcuno non può, più chiaro se sono in tanti',
+  'legend.free': 'liberi tutti, per ora',
+  'note.mark.light':
+    'Nero: non puoi tu. Il numero è quanti altri non possono, tienilo premuto per vedere chi. Tocca il giorno per segnarlo tutto.',
+  'note.mark.dark':
+    'Bianco: non puoi tu. Il numero è quanti altri non possono, tienilo premuto per vedere chi. Tocca il giorno per segnarlo tutto.',
+  'note.visitor': 'Il numero è quante persone non possono. Per segnare le tue fasce scrivi prima il nome.',
+
+  'bar.marked': { zero: 'Nessuna fascia segnata', one: '1 fascia segnata', other: '{count} fasce segnate' },
+  'bar.saved': 'salvato',
+  'bar.saving': 'salvo…',
+  'bar.failed': 'non salvato',
+  'bar.calendar': 'Vedi tutto il calendario',
+  'bar.closedBy': 'chiusa da {name}',
+
+  'join.title': 'Come ti chiami?',
+  'join.placeholder': 'Il tuo nome',
+  'join.submit': 'Entra e segna quando non puoi',
+  'join.empty': 'Scrivi il tuo nome.',
+  'join.tooLong': 'Il nome è troppo lungo: al massimo 30 caratteri.',
+
+  'share.prompt': 'Manca qualcuno? Mandagli il link',
+  'share.copy': 'Copia il link',
+  'copy.done': 'Copiato',
+  'copy.failed': 'Copia non riuscita: seleziona il link e copialo a mano.',
+
+  // The organiser's controls.
+  'organiser.close': 'Chiudi la votazione',
+  'organiser.closeHelp':
+    'Dopo la chiusura nessuno può più segnare e tutti vedono le alternative. Puoi sempre riaprirla.',
+  'organiser.closeConfirm': 'Chiudere la votazione adesso?',
+  'organiser.closeYes': 'Sì, chiudi',
+  'organiser.reopen': 'Riapri la votazione',
+  'organiser.reopenHelp': 'Tutti possono segnare di nuovo. Le fasce già segnate restano.',
+  'organiser.shareLink': 'Link per gli altri',
+  'organiser.ownLink': 'Link solo tuo, per organizzare',
+  'organiser.ownLinkHint': 'tienilo da parte',
+  'organiser.copy': 'Copia',
+  'organiser.copyShare': 'Copia il link per gli altri',
+  'organiser.copyOwn': 'Copia il link per organizzare',
+
+  // The closed event.
+  'result.status': 'Votazione chiusa',
+  'result.closedBy': '{name} ha chiuso.',
+  'result.people': { one: 'Ha segnato una persona: {names}.', other: 'Hanno segnato in {count}: {names}.' },
+  'result.peopleMany': 'Hanno segnato in {count}.',
+  'result.headline': {
+    zero: 'Non c’è un momento per tutti',
+    one: 'Ci siete tutti in un momento',
+    other: 'Ci siete tutti in {word} momenti',
+  },
+  'result.free.title': 'Ci siete tutti',
+  'result.free.badge': '{count} su {total}',
+  'result.tier.title': { one: 'Se ne manca uno solo', other: 'Se ne mancano {word}' },
+  'result.without': 'senza {names}',
+  'result.calendar.title': 'Tutto il calendario',
+  'result.calendar.noteHover': 'Il numero è quante persone mancano. Passa sopra una casella per vedere chi.',
+  'result.calendar.noteTap': 'Il numero è quante persone mancano. Tocca una casella per vedere chi.',
+
+  'notFound.event.title': 'Questo evento non c’è',
+  'notFound.event.text':
+    'Il link è sbagliato, oppure l’evento è scaduto: dopo un po’ dall’ultimo giorno gli eventi si cancellano da soli.',
+  'notFound.page.title': 'Qui non c’è niente',
+  'notFound.page.text': 'Questa pagina non esiste.',
+  'notFound.cta': 'Crea un evento nuovo',
+
+  // Creating an event.
+  'create.title': 'Quando ci vediamo?',
+  'create.tagline':
+    'Scegli i giorni possibili e manda il link. Ognuno segna quando non può: quello che resta è la data buona.',
+  'create.what': 'Cosa organizzi',
+  'create.who': 'Come ti chiami',
+  'create.days.title': 'Giorni possibili',
+  'create.days.prev': 'Mese precedente',
+  'create.days.next': 'Mese successivo',
+  'create.days.pick': '{day}: aggiungi',
+  'create.days.unpick': '{day}: scelto, tocca per togliere',
+  'create.days.past': '{day}: già passato',
+  'create.days.full': 'Al massimo {max} giorni: togline uno per aggiungerne un altro.',
+  'create.slots.title': 'Fasce della giornata',
+  'create.slots.hint': 'tocca per togliere quelle che non servono',
+  'create.perDay.title': 'Giorno per giorno',
+  'create.perDay.hint': {
+    zero: 'scegli prima i giorni',
+    one: '1 giorno scelto, togli una fascia solo dove non ha senso',
+    other: '{count} giorni scelti, togli una fascia solo dove non ha senso',
+  },
+  'create.perDay.more': 'Fasce diverse in un giorno?',
+  'create.perDay.changed': {
+    zero: 'nessun giorno cambiato',
+    one: '1 giorno cambiato',
+    other: '{count} giorni cambiati',
+  },
+  'create.perDay.empty': 'Scegli prima i giorni dal calendario.',
+  'create.perDay.slot': '{day}, {slot}',
+  'create.note': 'Niente account. Ti diamo un link da mandare agli altri e uno solo tuo per chiudere la votazione.',
+  'create.submit': 'Crea e prendi il link',
+  'create.error.title': 'Scrivi cosa organizzi.',
+  'create.error.titleLong': 'Troppo lungo: al massimo 80 caratteri.',
+  'create.error.name': 'Scrivi come ti chiami.',
+  'create.error.nameLong': 'Troppo lungo: al massimo 30 caratteri.',
+  'create.error.days': 'Scegli almeno un giorno dal calendario.',
+
+  // Right after creating.
+  'created.title': 'Fatto. Ora manda il link',
+  'created.others.title': 'Per gli altri',
+  'created.others.text': 'Mandalo nel gruppo. Chi lo apre scrive il nome e segna quando non può.',
+  'created.others.copy': 'Copia il link',
+  'created.others.share': 'Condividi',
+  'created.shareText': '{title}: segna quando non puoi',
+  'created.own.title': 'Solo per te',
+  'created.own.text':
+    'Con questo chiudi la votazione, anche da un altro telefono. Tienilo da parte e non mandarlo in giro.',
+  'created.own.copy': 'Copia il link per organizzare',
+  'created.next.text':
+    'Questo browser ti riconosce già come {name} e come chi organizza: puoi segnare subito le tue fasce.',
+  'created.next.open': 'Apri l’evento e segna le tue',
+} as const satisfies Record<string, Message>
