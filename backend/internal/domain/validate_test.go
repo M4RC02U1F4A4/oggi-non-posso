@@ -160,3 +160,30 @@ func TestDateWindow(t *testing.T) {
 		}
 	}
 }
+
+func TestNamesInUnicode(t *testing.T) {
+	// "Nicolò" with a precomposed ò and with o + combining grave accent.
+	_, k1, err1 := NormalizeName("Nicol\u00f2")
+	_, k2, err2 := NormalizeName("Nicolo\u0300")
+	if err1 != nil || err2 != nil || k1 != k2 {
+		t.Fatalf("the two forms of Nicolò: keys %q, %q (%v, %v); want the same", k1, k2, err1, err2)
+	}
+	for name, in := range map[string]string{
+		"only a zero-width space":  "\u200b",
+		"only zero-width joiners":  "\u200d\u200d",
+		"a right-to-left override": "Luca\u202e",
+		"an isolate":               "\u2066Luca\u2069",
+		"a control character":      "Lu\u0007ca",
+	} {
+		if _, _, err := NormalizeName(in); err == nil {
+			t.Errorf("%s accepted as a name", name)
+		}
+		if _, err := NormalizeTitle(in); err == nil {
+			t.Errorf("%s accepted as a title", name)
+		}
+	}
+	// A family emoji is joined by zero-width joiners: still a name.
+	if _, _, err := NormalizeName("Anna \U0001F468\u200D\U0001F469\u200D\U0001F467"); err != nil {
+		t.Errorf("a name with an emoji sequence refused: %v", err)
+	}
+}

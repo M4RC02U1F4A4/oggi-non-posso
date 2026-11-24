@@ -5,7 +5,10 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
+
+	"golang.org/x/text/unicode/norm"
 )
 
 // Limits on what a request may carry.
@@ -27,21 +30,48 @@ func invalid(field, format string, args ...any) error {
 	return &ValidationError{Field: field, Message: fmt.Sprintf(format, args...)}
 }
 
-// NormalizeTitle trims s and checks that 1 to 80 characters are left.
+// cleanText brings s to Unicode NFC, so that the same letters typed on two
+// devices are the same string, and trims it. It reports false when s holds
+// a control character or a bidirectional override, which could make a name
+// or a title rewrite the text around it, or when nothing visible is left
+// once spaces and invisible format characters are set aside.
+func cleanText(s string) (string, bool) {
+	s = strings.TrimSpace(norm.NFC.String(s))
+	visible := false
+	for _, r := range s {
+		switch {
+		case unicode.IsControl(r), isBidiControl(r):
+			return "", false
+		case unicode.IsSpace(r), unicode.Is(unicode.Cf, r):
+		default:
+			visible = true
+		}
+	}
+	return s, visible
+}
+
+// isBidiControl reports the embedding, override and isolate controls.
+func isBidiControl(r rune) bool {
+	return (r >= 0x202A && r <= 0x202E) || (r >= 0x2066 && r <= 0x2069)
+}
+
+// NormalizeTitle cleans s (see cleanText) and checks that 1 to 80
+// characters are left.
 func NormalizeTitle(s string) (string, error) {
-	s = strings.TrimSpace(s)
-	if n := utf8.RuneCountInString(s); n < 1 || n > MaxTitleLength {
-		return "", invalid("title", "must be 1 to %d characters", MaxTitleLength)
+	s, ok := cleanText(s)
+	if n := utf8.RuneCountInString(s); !ok || n < 1 || n > MaxTitleLength {
+		return "", invalid("title", "must be 1 to %d visible characters", MaxTitleLength)
 	}
 	return s, nil
 }
 
-// NormalizeName trims s and checks that 1 to 30 characters are left. The key
-// is what makes two names the same inside an event: the name without case.
+// NormalizeName cleans s (see cleanText) and checks that 1 to 30 characters
+// are left. The key is what makes two names the same inside an event: the
+// name in NFC, without case.
 func NormalizeName(s string) (name, key string, err error) {
-	name = strings.TrimSpace(s)
-	if n := utf8.RuneCountInString(name); n < 1 || n > MaxNameLength {
-		return "", "", invalid("name", "must be 1 to %d characters", MaxNameLength)
+	name, ok := cleanText(s)
+	if n := utf8.RuneCountInString(name); !ok || n < 1 || n > MaxNameLength {
+		return "", "", invalid("name", "must be 1 to %d visible characters", MaxNameLength)
 	}
 	return name, strings.ToLower(name), nil
 }

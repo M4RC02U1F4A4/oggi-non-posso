@@ -2,7 +2,10 @@ module github.com/M4RC02U1F4A4/oggi-non-posso/backend
 
 go 1.26.0
 
-require modernc.org/sqlite v1.63.0
+require (
+	golang.org/x/text v0.44.0
+	modernc.org/sqlite v1.63.0
+)
 
 require (
 	github.com/dustin/go-humanize v1.1.0 // indirect
