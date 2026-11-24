@@ -1,0 +1,145 @@
+name: Verify
+
+# Nothing here publishes anything: it proves both halves still format, vet,
+# typecheck, pass their tests and build, and that a working image comes out
+# of the Dockerfile, before a change lands.
+#
+# Pull requests run it directly. On `main` it runs as the first job of
+# release.yml (`workflow_call`), so a red suite stops the release instead of
+# racing it, and the same checks do not run twice per push.
+#
+# Everything runs on GitHub's arm64 runners: the image is linux/arm64 only,
+# and the smoke test has to run the image it built.
+on:
+  pull_request:
+  workflow_call: {}
+  workflow_dispatch: {}
+
+# A new push to a pull request cancels the run it superseded. Anything else
+# (a release, a manual run) gets a group of its own and is never cancelled.
+concurrency:
+  group: verify-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  backend:
+    name: Backend — format, vet and test
+    runs-on: ubuntu-24.04-arm
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # The Go version comes from go.mod alone, so it cannot drift from what
+      # the module declares. `-race` needs cgo, which the Dockerfile's builder
+      # does not have: hence the toolchain on the runner.
+      - name: Set up Go
+        uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version-file: backend/go.mod
+          cache: true
+          cache-dependency-path: backend/go.sum
+
+      - name: Check formatting
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "::error::These files are not gofmt-formatted:"
+            echo "$unformatted" | sed 's/^/  /'
+            exit 1
+          fi
+
+      - name: Check go.mod and go.sum are tidy
+        run: |
+          if ! go mod tidy -diff; then
+            echo "::error::go.mod or go.sum is not tidy: run go mod tidy"
+            exit 1
+          fi
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test -race -covermode=atomic -coverprofile=coverage.out ./...
+
+      - name: Coverage summary
+        run: go tool cover -func=coverage.out | tail -n 1 >> "$GITHUB_STEP_SUMMARY"
+
+  frontend:
+    name: Frontend — typecheck, test and build
+    runs-on: ubuntu-24.04-arm
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test -- --run
+
+      - name: Build
+        run: npm run build
+
+  scripts:
+    name: Release scripts
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Check the version script
+        run: sh .github/scripts/next-version.test.sh
+
+  image:
+    name: Build and smoke-test the image
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build (no push)
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/arm64
+          push: false
+          load: true
+          tags: oggi-non-posso:ci
+          build-args: |
+            VERSION=ci-smoke
+          # A scope of its own: a release must never reuse layers written by
+          # a pull request build.
+          cache-from: type=gha,scope=verify
+          cache-to: type=gha,mode=max,scope=verify
+          provenance: false
+          sbom: false
+
+      # A build proves the layers assemble; this proves the thing starts,
+      # serves the page and the API, and stops cleanly.
+      - name: Smoke-test the image
+        run: .github/scripts/smoke-test.sh oggi-non-posso:ci ci-smoke

@@ -105,6 +105,9 @@ on both sides.
   `src/i18n` (`it.ts` is the only place with interface text), `src/hooks`
   (`useEvent`, `useEventStream`), `src/components`, `src/pages`,
   `src/styles` (`tokens.css` holds colours for light and dark).
+- `.github/` — `workflows/verify.yml` and `workflows/release.yml`,
+  `scripts/` (`next-version.sh` and its test, `smoke-test.sh`),
+  `dependabot.yml` (Actions, Go, npm, base images).
 - `Dockerfile`, `.dockerignore` — one image: the binary plus the built
   frontend. `.env.example` — every `ONP_` variable. `README.md` — what it
   is, how to run it, the configuration table.
@@ -148,6 +151,21 @@ that adds it.
    desktop, light and dark.
 7. **Stop what you start.** A server or a binary started for a test is
    stopped when the test is over.
+
+## Build and release
+
+- Every push to `main` is a release (`.github/workflows/release.yml`): it
+  runs `verify.yml`, computes the version from the commit types
+  (`.github/scripts/next-version.sh`: `type!:` major, `feat:` minor, anything
+  else patch), publishes `ghcr.io/<owner>/oggi-non-posso:<version>` and
+  `latest`, then pushes the git tag (no `v`) and the GitHub Release. The
+  commit type is the version number: choose it from the diff.
+- The image is **linux/arm64 only**, built natively on GitHub's arm64
+  runners. Base images are pinned by digest; Dependabot moves them.
+- `verify.yml` runs on pull requests and as the first job of every release:
+  the backend and frontend checks below, then an image build and
+  `.github/scripts/smoke-test.sh` on it.
+- The deployment lives outside this repository and is never described here.
 
 ## Checks
 

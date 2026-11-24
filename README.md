@@ -48,6 +48,13 @@ cd backend && gofmt -l . && go vet ./... && go test ./... -race
 cd frontend && npm run typecheck && npm test -- --run && npm run build
 ```
 
+## Releases
+
+Every push to `main` publishes an image to
+`ghcr.io/m4rc02u1f4a4/oggi-non-posso` (linux/arm64), tagged with a version
+computed from the commit messages and `latest`, plus a git tag and a GitHub
+Release.
+
 ## Run it as one image
 
 ```sh
