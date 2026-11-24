@@ -37,8 +37,8 @@ look. Read it before any task; this plan does not repeat it.
   on them in Go, no `new Date("YYYY-MM-DD")` in TypeScript.
 - Limits, verbatim from the spec: title 1–80, names 1–30, days 1–62, body
   64 KiB, 50 participants, 10 events/hour and 30 joins/hour per address,
-  event id 12 characters of `[A-Za-z0-9]`, tokens 32 random bytes base64url
-  with prefixes `p_` and `o_`, comment ping every 25 s, "is marking" 8 s.
+  event id and organiser key random UUIDs (version 4), participant token
+  `p_` + 32 random bytes base64url, comment ping every 25 s, "is marking" 8 s.
 - Colours and fonts verbatim from the spec's "Look".
 - A server or watcher started for a check is stopped when the check is over.
 
@@ -486,7 +486,7 @@ useEventStream(id, onUpdate: (u: { version; kind; by }) => void): void // reconn
       fixture and on a no-free event.
 - [ ] `OrganiserPanel` (only with `can_manage`): close with a confirmation,
       reopen, remove a participant with a confirmation, copy both links. The
-      `#o=` fragment is stored and stripped on load (test with a fake
+      organiser link `/e/:id/o/:key` is verified, stored and replaced by `/e/:id` on load (test with a fake
       `location`).
 - [ ] Browser check as above. Commit `feat(frontend): result view and organiser controls`.
 

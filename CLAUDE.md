@@ -52,9 +52,11 @@ goes here and in the design document in the same commit.
 - **Links and tokens are the only credentials.** The share link reaches the
   event. A participant token (kept by the browser that joined) changes that
   participant's marks; an organiser key closes, reopens and removes
-  participants. They are random, the database keeps only their hashes, and
-  the organiser key travels in the URL fragment so it never reaches a
-  server log.
+  participants. They are random and the database keeps only their hashes.
+  The two unique links are plain paths with UUIDs: `/e/<event>` to share and
+  `/e/<event>/o/<organiser key>` for the organiser; the organiser key is
+  never written to a log, and the page drops it from the address bar once
+  stored.
 - **Dates are calendar dates**, `YYYY-MM-DD` strings end to end. No time
   zone is ever applied to them, in Go or in TypeScript.
 

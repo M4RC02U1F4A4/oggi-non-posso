@@ -139,10 +139,12 @@ carries `Cache-Control: no-store`.
 
 ### Credentials
 
-- Participant: `Authorization: Bearer p_<token>`.
-- Organiser: `X-Organiser-Key: o_<key>`.
+- Participant: `Authorization: Bearer p_<token>`, where the token is 32
+  random bytes, base64url. It never appears in a link.
+- Organiser: `X-Organiser-Key: <uuid>`, a random UUID (version 4). It is the
+  last segment of the organiser link.
 
-Both are 32 random bytes, base64url. The database keeps only their SHA-256.
+The database keeps only the SHA-256 of both.
 An unknown or foreign credential on a read is ignored (the caller is simply
 nobody); on a write that needs it, it is `401 unauthorized`.
 
@@ -169,7 +171,7 @@ The frontend maps codes to its own text; `message` is for logs and curl.
 
 ```json
 {
-  "id": "k7Qm2xVd9LpA",
+  "id": "3f2b8c1e-9a47-4d0b-8e65-1c7a2f9d4b10",
   "title": "Cena di dicembre",
   "status": "open",
   "version": 12,
@@ -190,7 +192,7 @@ The frontend maps codes to its own text; `message` is for logs and curl.
 }
 ```
 
-- `id`: 12 characters of `[A-Za-z0-9]`, random.
+- `id`: a random UUID (version 4), lower case, in the canonical 36-character form. It is the unique part of the share link.
 - `status`: `open` or `closed`.
 - `slots`: the union of the days' slots, canonical order.
 - `days`: ascending by date; each `slots` in canonical order, never empty.
@@ -305,9 +307,14 @@ Rate limits, per client address: 10 new events per hour, 30 joins per hour.
     and the whole table with counts.
   - With the organiser key: close / reopen, remove a participant, copy both
     links.
-- `/e/:id#o=<key>` — the organiser link. The page stores the key for that
-  event and removes it from the address bar. The fragment never reaches the
-  server.
+- `/e/:id/o/:key` — the organiser link, with the organiser key (a UUID) in
+  the path. The page checks the key with the server, stores it for that
+  event only if it is valid, and then replaces the address with `/e/:id`, so
+  that copying the address bar never hands out the organiser's rights. A key
+  that is not valid never replaces one already stored.
+
+Both unique links are plain paths with UUIDs: `/e/<event uuid>` to share,
+`/e/<event uuid>/o/<organiser uuid>` for the organiser.
 
 Credentials live in `localStorage`, keyed by event id.
 
@@ -344,7 +351,10 @@ Credentials live in `localStorage`, keyed by event id.
 ## Security notes
 
 - Tokens only in headers: no cookies, so no cross-site request forgery.
-- `Referrer-Policy: no-referrer` so a share link is not leaked by a click.
+- `Referrer-Policy: no-referrer` so a link is not leaked by a click.
+- The organiser key is in a path, so it reaches the server: the backend
+  never writes it to a log (the segment after `/o/` is redacted), and
+  whoever runs a proxy in front should do the same.
 - `Content-Security-Policy` limited to the page's own origin;
   `X-Content-Type-Options: nosniff`; no framing.
 - Names and titles are plain text everywhere; the frontend never injects
