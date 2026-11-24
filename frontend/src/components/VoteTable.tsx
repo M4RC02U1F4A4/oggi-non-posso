@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
 import type { EventData, Pair, Participant } from '../api/types'
 import { joinList, t, type MessageKey } from '../i18n'
-import { formatDayLong, monthLong, parseDate, spansYears, weekdayLong, weekdayShort } from '../lib/dates'
+import { formatDayLong, monthLong, parseDate, spansMonths, spansYears, weekdayLong, weekdayShort } from '../lib/dates'
 import { cellsOf, dayPairs, type Cell } from '../lib/grid'
 import '../styles/VoteTable.css'
 
@@ -52,18 +52,30 @@ export function VoteTable({ event, mode, variant = 'full', onToggle, id }: VoteT
     y: 0,
   })
 
+  const rootRef = useRef<HTMLDivElement>(null)
+
   const cancelPress = () => clearTimeout(press.current.timer)
+
+  /** With the names open, a tap only closes them. True when it did. */
+  const closePeek = () => {
+    if (peek === null) return false
+    setPeek(null)
+    return true
+  }
 
   useEffect(() => {
     const state = press.current
     return () => clearTimeout(state.timer)
   }, [])
 
-  // An open "who is missing" closes at the next touch outside a cell, or on Escape.
+  // An open "who is missing" closes at the next tap, wherever it lands, or
+  // on Escape. A tap outside the table closes it here; one inside is the
+  // table's own business (see the click handlers): it closes the names and
+  // does nothing else, so a tap on the bubble never marks the cell under it.
   useEffect(() => {
     if (peek === null) return
     const onPointerDown = (e: globalThis.PointerEvent) => {
-      if (!(e.target instanceof Element) || !e.target.closest('.vt__btn')) setPeek(null)
+      if (!(e.target instanceof Node) || !rootRef.current?.contains(e.target)) setPeek(null)
     }
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setPeek(null)
@@ -79,7 +91,10 @@ export function VoteTable({ event, mode, variant = 'full', onToggle, id }: VoteT
   const rows = cellsOf(event)
   const me = event.me
   const marking = mode === 'mark' && me !== null
-  const withYear = spansYears(event.days.map((day) => day.date))
+  const dates = event.days.map((day) => day.date)
+  const withYear = spansYears(dates)
+  // "venerdì 11" names a day only while every day is in the same month.
+  const withMonth = spansMonths(dates)
   const columns = event.slots.length
   const style = { '--vt-cols': columns } as CSSProperties
 
@@ -110,6 +125,11 @@ export function VoteTable({ event, mode, variant = 'full', onToggle, id }: VoteT
 
   return (
     <div
+      ref={rootRef}
+      onClick={(e) => {
+        // Between the buttons (a header, a slot not in play): close the names too.
+        if (!(e.target instanceof Element) || !e.target.closest('button')) closePeek()
+      }}
       id={id}
       role="table"
       aria-label={t('table.label')}
@@ -144,7 +164,7 @@ export function VoteTable({ event, mode, variant = 'full', onToggle, id }: VoteT
       {event.days.map((day, rowIndex) => {
         const cells = rows[rowIndex] ?? []
         const { y, m, d, weekday } = parseDate(day.date)
-        const dayName = formatDayLong(day.date)
+        const dayName = formatDayLong(day.date, withMonth)
         const month = day.date.slice(0, 7)
         const monthRow = month !== lastMonth
         lastMonth = month
@@ -181,7 +201,7 @@ export function VoteTable({ event, mode, variant = 'full', onToggle, id }: VoteT
                     className="vt__daybtn"
                     aria-label={t(allMine ? 'day.aria.clearAll' : 'day.aria.markAll', { day: dayName })}
                     onClick={() => {
-                      setPeek(null)
+                      if (closePeek()) return
                       onToggle?.(dayPairs(day))
                     }}
                   >
@@ -270,7 +290,7 @@ export function VoteTable({ event, mode, variant = 'full', onToggle, id }: VoteT
                         }}
                         onClick={() => {
                           if (consumeLongPress()) return
-                          setPeek(null)
+                          if (closePeek()) return
                           onToggle?.([{ date: cell.date, slot: cell.slot }])
                         }}
                       >

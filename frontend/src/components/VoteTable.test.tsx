@@ -52,6 +52,101 @@ describe('VoteTable, marking', () => {
   })
 })
 
+describe('VoteTable, with the names open', () => {
+  /** Holds a finger on a cell until the names open. */
+  function longPress(cell: HTMLElement) {
+    fireEvent.pointerDown(cell, { button: 0, clientX: 10, clientY: 10 })
+    act(() => void vi.advanceTimersByTime(500))
+    fireEvent.pointerUp(cell)
+  }
+
+  /** A tap as a browser delivers it: down, up, click. */
+  function tap(element: HTMLElement) {
+    fireEvent.pointerDown(element, { button: 0, clientX: 10, clientY: 10 })
+    fireEvent.pointerUp(element)
+    fireEvent.click(element)
+  }
+
+  it('closes them at the next tap on a cell, and marks nothing', () => {
+    vi.useFakeTimers()
+    try {
+      const onToggle = vi.fn()
+      render(<VoteTable event={fixtureEvent('Anna')} mode="mark" onToggle={onToggle} />)
+      longPress(screen.getByRole('button', { name: /^domenica 13, cena/ }))
+      expect(screen.getByRole('status')).toBeDefined()
+
+      // The bubble lets taps through: this is the cell under it.
+      tap(screen.getByRole('button', { name: /^sabato 19, cena/ }))
+      expect(screen.queryByRole('status')).toBeNull()
+      expect(onToggle).not.toHaveBeenCalled()
+
+      tap(screen.getByRole('button', { name: /^sabato 19, cena/ }))
+      expect(onToggle).toHaveBeenCalledExactlyOnceWith([{ date: '2026-12-19', slot: 'dinner' }])
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('closes them at a tap on a day, without marking the day', () => {
+    vi.useFakeTimers()
+    try {
+      const onToggle = vi.fn()
+      render(<VoteTable event={fixtureEvent('Anna')} mode="mark" onToggle={onToggle} />)
+      longPress(screen.getByRole('button', { name: /^domenica 13, cena/ }))
+
+      const day = screen.getByRole('button', { name: 'sabato 19: segna tutto il giorno' })
+      tap(day)
+      expect(screen.queryByRole('status')).toBeNull()
+      expect(onToggle).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('closes them at a tap elsewhere in the table, outside it, or on Escape', () => {
+    vi.useFakeTimers()
+    try {
+      render(<VoteTable event={fixtureEvent('Anna')} mode="mark" onToggle={vi.fn()} />)
+      const cell = screen.getByRole('button', { name: /^domenica 13, cena/ })
+
+      longPress(cell)
+      fireEvent.click(screen.getByText('venerdì 11, mattina: non in programma'))
+      expect(screen.queryByRole('status')).toBeNull()
+
+      longPress(cell)
+      fireEvent.pointerDown(document.body)
+      expect(screen.queryByRole('status')).toBeNull()
+
+      longPress(cell)
+      fireEvent.keyDown(document, { key: 'Escape' })
+      expect(screen.queryByRole('status')).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
+
+describe('VoteTable, more than one month', () => {
+  it('names the month in every accessible name', () => {
+    const event = fixtureEvent('Anna', {
+      slots: ['dinner'],
+      days: [
+        { date: '2026-12-31', slots: ['dinner'] },
+        { date: '2027-01-02', slots: ['dinner'] },
+      ],
+    })
+    render(<VoteTable event={event} mode="mark" onToggle={vi.fn()} />)
+    expect(screen.getByRole('button', { name: 'giovedì 31 dicembre, cena: puoi' })).toBeDefined()
+    expect(screen.getByRole('button', { name: 'sabato 2 gennaio, cena: puoi' })).toBeDefined()
+    expect(screen.getByRole('button', { name: 'sabato 2 gennaio: segna tutto il giorno' })).toBeDefined()
+  })
+
+  it('leaves the month out while every day is in the same one', () => {
+    render(<VoteTable event={fixtureEvent('Anna')} mode="mark" onToggle={vi.fn()} />)
+    expect(screen.getByRole('button', { name: 'venerdì 11: segna tutto il giorno' })).toBeDefined()
+  })
+})
+
 describe('VoteTable, looking only', () => {
   it('offers no way to mark to a visitor, and names who is missing on a tap', () => {
     render(<VoteTable event={fixtureEvent()} mode="read" />)
@@ -68,7 +163,12 @@ describe('VoteTable, looking only', () => {
   it('shows the count of the caller too on the closed event, and zero where everyone is free', () => {
     const { container } = render(<VoteTable event={closedFixtureEvent('Anna')} mode="result" variant="mini" />)
     expect(container.querySelectorAll('.is-mine')).toHaveLength(0)
-    expect(container.querySelectorAll('.is-free')).toHaveLength(5)
+    const free = [...container.querySelectorAll('.is-free')]
+    expect(free).toHaveLength(5)
+    // Everyone free is a visible zero, not an empty yellow cell.
+    for (const cell of free) expect(cell.querySelector('.vt__count')?.textContent).toBe('0')
+    const counts = [...container.querySelectorAll('.vt__count')].map((count) => count.textContent)
+    expect(counts.slice(0, 3)).toEqual(['3', '1', '0'])
     expect(screen.getByRole('button', { name: 'venerdì 18, pomeriggio: non possono Luca, Anna, Marta e Paolo' })).toBeDefined()
   })
 })
