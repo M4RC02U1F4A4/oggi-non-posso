@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"path"
+	"time"
 
 	"github.com/M4RC02U1F4A4/oggi-non-posso/backend/internal/hub"
 	"github.com/M4RC02U1F4A4/oggi-non-posso/backend/internal/store"
@@ -28,6 +29,11 @@ type Options struct {
 	MaxParticipants int
 	// Logger may be nil: nothing is logged then.
 	Logger *slog.Logger
+	// Updates feeds the streams. It may be nil: there is no stream then.
+	Updates Subscriber
+	// PingInterval is the time between two comment lines on an idle
+	// stream; zero means 25 seconds.
+	PingInterval time.Duration
 }
 
 type api struct {
@@ -35,6 +41,8 @@ type api struct {
 	notifier        Notifier
 	maxParticipants int
 	log             *slog.Logger
+	updates         Subscriber
+	pingInterval    time.Duration
 }
 
 // New returns the handler of the service.
@@ -44,9 +52,14 @@ func New(o Options) http.Handler {
 		notifier:        o.Notifier,
 		maxParticipants: o.MaxParticipants,
 		log:             o.Logger,
+		updates:         o.Updates,
+		pingInterval:    o.PingInterval,
 	}
 	if a.log == nil {
 		a.log = slog.New(slog.DiscardHandler)
+	}
+	if a.pingInterval <= 0 {
+		a.pingInterval = defaultPingInterval
 	}
 
 	mux := http.NewServeMux()
@@ -57,6 +70,9 @@ func New(o Options) http.Handler {
 	mux.HandleFunc("POST /api/events/{id}/close", a.setStatus)
 	mux.HandleFunc("POST /api/events/{id}/reopen", a.setStatus)
 	mux.HandleFunc("DELETE /api/events/{id}/participants/{pid}", a.removeParticipant)
+	if a.updates != nil {
+		mux.HandleFunc("GET /api/events/{id}/stream", a.stream)
+	}
 	// Everything else, a known path with another method included, is a
 	// JSON 404: with this catch-all the mux never answers on its own.
 	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) { notFound(w) })

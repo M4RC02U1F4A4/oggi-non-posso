@@ -1,0 +1,276 @@
+package api
+
+import (
+	"bufio"
+	"bytes"
+	"context"
+	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	"github.com/M4RC02U1F4A4/oggi-non-posso/backend/internal/hub"
+)
+
+// countingHub is a hub that knows how many subscriptions are open.
+type countingHub struct {
+	*hub.Hub
+	open atomic.Int32
+}
+
+func (c *countingHub) Subscribe(eventID string) (<-chan Update, func()) {
+	ch, cancel := c.Hub.Subscribe(eventID)
+	c.open.Add(1)
+	var once atomic.Bool
+	return ch, func() {
+		if once.CompareAndSwap(false, true) {
+			c.open.Add(-1)
+		}
+		cancel()
+	}
+}
+
+// streamHarness serves the API on a real listener, wired to a real hub.
+type streamHarness struct {
+	t      *testing.T
+	server *httptest.Server
+	hub    *countingHub
+}
+
+func newStreamHarness(t *testing.T, ping time.Duration) *streamHarness {
+	t.Helper()
+	live := &countingHub{Hub: hub.New()}
+	h := newHarness(t, func(o *Options) {
+		o.Notifier = live
+		o.Updates = live
+		o.PingInterval = ping
+	})
+	server := httptest.NewServer(h.handler)
+	t.Cleanup(server.Close)
+	return &streamHarness{t: t, server: server, hub: live}
+}
+
+func (s *streamHarness) request(method, path string, body any, c creds) *http.Response {
+	s.t.Helper()
+	var reader io.Reader
+	if body != nil {
+		raw, err := json.Marshal(body)
+		if err != nil {
+			s.t.Fatalf("marshal: %v", err)
+		}
+		reader = bytes.NewReader(raw)
+	}
+	req, err := http.NewRequest(method, s.server.URL+path, reader)
+	if err != nil {
+		s.t.Fatalf("request: %v", err)
+	}
+	if c.token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.token)
+	}
+	res, err := s.server.Client().Do(req)
+	if err != nil {
+		s.t.Fatalf("%s %s: %v", method, path, err)
+	}
+	return res
+}
+
+func (s *streamHarness) create() createdView {
+	s.t.Helper()
+	res := s.request("POST", "/api/events", dinner(), creds{})
+	defer res.Body.Close()
+	var out createdView
+	if err := json.NewDecoder(res.Body).Decode(&out); err != nil || res.StatusCode != http.StatusCreated {
+		s.t.Fatalf("create: status %d, %v", res.StatusCode, err)
+	}
+	return out
+}
+
+// stream is an open connection to an event's stream.
+type stream struct {
+	t      *testing.T
+	res    *http.Response
+	lines  chan string
+	cancel context.CancelFunc
+}
+
+func (s *streamHarness) open(eventID string) *stream {
+	s.t.Helper()
+	ctx, cancel := context.WithCancel(context.Background())
+	req, err := http.NewRequestWithContext(ctx, "GET", s.server.URL+"/api/events/"+eventID+"/stream", nil)
+	if err != nil {
+		cancel()
+		s.t.Fatalf("request: %v", err)
+	}
+	res, err := s.server.Client().Do(req)
+	if err != nil {
+		cancel()
+		s.t.Fatalf("open the stream: %v", err)
+	}
+	st := &stream{t: s.t, res: res, lines: make(chan string, 64), cancel: cancel}
+	s.t.Cleanup(st.close)
+	go func() {
+		defer close(st.lines)
+		scanner := bufio.NewScanner(res.Body)
+		for scanner.Scan() {
+			st.lines <- scanner.Text()
+		}
+	}()
+	return st
+}
+
+func (st *stream) close() {
+	st.cancel()
+	st.res.Body.Close()
+}
+
+func (st *stream) line() string {
+	st.t.Helper()
+	select {
+	case l, ok := <-st.lines:
+		if !ok {
+			st.t.Fatal("the stream ended")
+		}
+		return l
+	case <-time.After(5 * time.Second):
+		st.t.Fatal("nothing arrived on the stream")
+		return ""
+	}
+}
+
+// update reads the next "update" event and returns its data line as sent,
+// skipping the pings before it.
+func (st *stream) update() string {
+	st.t.Helper()
+	for {
+		l := st.line()
+		if l == "" || strings.HasPrefix(l, ":") {
+			continue
+		}
+		if l != "event: update" {
+			st.t.Fatalf("line %q, want %q", l, "event: update")
+		}
+		data, ok := strings.CutPrefix(st.line(), "data: ")
+		if !ok {
+			st.t.Fatalf("no data line after the event line")
+		}
+		if end := st.line(); end != "" {
+			st.t.Fatalf("line %q after the data, want the blank line that ends the event", end)
+		}
+		return data
+	}
+}
+
+func TestStream(t *testing.T) {
+	s := newStreamHarness(t, time.Hour)
+	created := s.create()
+	id := created.Event.ID
+	me := created.Event.Participants[0].ID
+
+	st := s.open(id)
+	if st.res.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d", st.res.StatusCode)
+	}
+	if got := st.res.Header.Get("Content-Type"); got != "text/event-stream" {
+		t.Fatalf("Content-Type = %q", got)
+	}
+	if got := st.res.Header.Get("Cache-Control"); got != "no-store" {
+		t.Fatalf("Cache-Control = %q", got)
+	}
+
+	// On connect: where the event is now.
+	if got, want := st.update(), `{"version":1,"kind":"status","by":null}`; got != want {
+		t.Fatalf("first update = %s, want %s", got, want)
+	}
+
+	res := s.request("PUT", "/api/events/"+id+"/absences",
+		change{Set: []pair{{"2026-12-12", "dinner"}}}, creds{token: created.ParticipantToken})
+	res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("mark: status %d", res.StatusCode)
+	}
+	if got, want := st.update(), `{"version":2,"kind":"absences","by":"`+me+`"}`; got != want {
+		t.Fatalf("second update = %s, want %s", got, want)
+	}
+
+	// A change to another event does not reach this stream.
+	other := s.create()
+	res = s.request("POST", "/api/events/"+other.Event.ID+"/participants", map[string]string{"name": "Luca"}, creds{})
+	res.Body.Close()
+	res = s.request("POST", "/api/events/"+id+"/participants", map[string]string{"name": "Luca"}, creds{})
+	var joined joinedView
+	if err := json.NewDecoder(res.Body).Decode(&joined); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	res.Body.Close()
+	if got, want := st.update(), `{"version":3,"kind":"participants","by":"`+*joined.Event.Me+`"}`; got != want {
+		t.Fatalf("third update = %s, want %s", got, want)
+	}
+}
+
+func TestStreamPing(t *testing.T) {
+	s := newStreamHarness(t, 10*time.Millisecond)
+	st := s.open(s.create().Event.ID)
+	st.update()
+	for range 3 {
+		for st.line() != ": ping" {
+		}
+	}
+}
+
+func TestStreamUnknownEvent(t *testing.T) {
+	s := newStreamHarness(t, time.Hour)
+	res := s.request("GET", "/api/events/nosuchevent0/stream", nil, creds{})
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404", res.StatusCode)
+	}
+	if got := res.Header.Get("Content-Type"); got != "application/json; charset=utf-8" {
+		t.Fatalf("Content-Type = %q", got)
+	}
+	var e errorView
+	if err := json.NewDecoder(res.Body).Decode(&e); err != nil || e.Error.Code != "not_found" {
+		t.Fatalf("error = %+v, %v", e, err)
+	}
+	if got := s.hub.open.Load(); got != 0 {
+		t.Fatalf("%d subscriptions left open by a 404", got)
+	}
+}
+
+func TestStreamEndsWithTheRequest(t *testing.T) {
+	s := newStreamHarness(t, time.Hour)
+	id := s.create().Event.ID
+
+	first, second := s.open(id), s.open(id)
+	first.update()
+	second.update()
+	if got := s.hub.open.Load(); got != 2 {
+		t.Fatalf("%d subscriptions open, want 2", got)
+	}
+
+	first.close()
+	deadline := time.Now().Add(5 * time.Second)
+	for s.hub.open.Load() != 1 {
+		if time.Now().After(deadline) {
+			t.Fatalf("%d subscriptions open after one client left, want 1", s.hub.open.Load())
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+
+	// The one still connected keeps receiving.
+	res := s.request("POST", "/api/events/"+id+"/participants", map[string]string{"name": "Luca"}, creds{})
+	res.Body.Close()
+	if got := second.update(); !strings.HasPrefix(got, `{"version":2,"kind":"participants"`) {
+		t.Fatalf("update = %s", got)
+	}
+}
+
+func TestNoStreamWithoutUpdates(t *testing.T) {
+	h := newHarness(t)
+	id := h.create().Event.ID
+	h.do("GET", "/api/events/"+id+"/stream", nil, creds{}).wantError(http.StatusNotFound, "not_found")
+}
