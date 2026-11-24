@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/M4RC02U1F4A4/oggi-non-posso/backend/internal/hub"
@@ -16,6 +17,10 @@ const (
 	defaultPingInterval = 25 * time.Second
 	// streamWriteTimeout is how long a client has to take what is sent.
 	streamWriteTimeout = 10 * time.Second
+	// streamRetryAfter is what a client refused a stream is told to wait.
+	// A place frees up when another stream closes, which nobody can tell
+	// in advance.
+	streamRetryAfter = 30 * time.Second
 )
 
 // Subscriber gives the updates of an event from now on, and the function
@@ -34,6 +39,17 @@ func (a *api) stream(w http.ResponseWriter, r *http.Request) {
 		notFound(w)
 		return
 	}
+
+	// A stream holds a connection for as long as its client stays: their
+	// number is bounded, per client and in all, with or without rate
+	// limits.
+	leave, ok := a.streams.Enter(a.clientAddress(r))
+	if !ok {
+		w.Header().Set("Retry-After", strconv.Itoa(int(streamRetryAfter.Seconds())))
+		writeError(w, http.StatusTooManyRequests, codeRateLimited, "too many open streams, try again later")
+		return
+	}
+	defer leave()
 
 	// Subscribe before reading the version: a change that lands between
 	// the two is then announced twice instead of never.

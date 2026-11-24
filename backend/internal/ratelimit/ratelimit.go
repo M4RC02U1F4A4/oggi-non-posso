@@ -10,6 +10,17 @@ import (
 // memory a limiter can take, whatever the number of keys it is shown.
 const MaxKeys = 100_000
 
+// Bounds on the streams of live updates open at the same time. Each one
+// holds a connection and a goroutine for as long as its client stays, so
+// these protect the process itself: they are not a quota and are always
+// on, whatever the setting of the rate limits.
+const (
+	// MaxStreamsPerKey is the most streams one client key holds open.
+	MaxStreamsPerKey = 20
+	// MaxStreams is the most streams open in all.
+	MaxStreams = 2000
+)
+
 // Limiter allows a number of requests per key in each window. The window
 // of a key begins with its first request and is not moved by the requests
 // that follow, refused ones included.

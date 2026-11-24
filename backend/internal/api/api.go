@@ -59,6 +59,7 @@ type api struct {
 	staticDir       string
 	creations       *ratelimit.Limiter // nil when rate limits are off
 	joins           *ratelimit.Limiter // nil when rate limits are off
+	streams         *ratelimit.Gate    // bounds the open streams; always on
 	mux             *http.ServeMux     // the routes under /api
 }
 
@@ -77,6 +78,7 @@ func newAPI(o Options, now func() time.Time) http.Handler {
 		pingInterval:    o.PingInterval,
 		clientIPHeader:  o.ClientIPHeader,
 		staticDir:       o.StaticDir,
+		streams:         ratelimit.NewGate(ratelimit.MaxStreamsPerKey, ratelimit.MaxStreams),
 	}
 	if a.log == nil {
 		a.log = slog.New(slog.DiscardHandler)

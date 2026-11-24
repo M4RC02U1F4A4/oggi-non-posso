@@ -43,14 +43,14 @@ type streamHarness struct {
 	hub    *countingHub
 }
 
-func newStreamHarness(t *testing.T, ping time.Duration) *streamHarness {
+func newStreamHarness(t *testing.T, ping time.Duration, change ...func(*Options)) *streamHarness {
 	t.Helper()
 	live := &countingHub{Hub: hub.New()}
-	h := newHarness(t, func(o *Options) {
+	h := newHarness(t, append([]func(*Options){func(o *Options) {
 		o.Notifier = live
 		o.Updates = live
 		o.PingInterval = ping
-	})
+	}}, change...)...)
 	server := httptest.NewServer(h.handler)
 	t.Cleanup(server.Close)
 	return &streamHarness{t: t, server: server, hub: live}
@@ -99,13 +99,18 @@ type stream struct {
 	cancel context.CancelFunc
 }
 
-func (s *streamHarness) open(eventID string) *stream {
+// open connects to an event's stream. forwarded, when given, is the value
+// of the X-Forwarded-For header of the request.
+func (s *streamHarness) open(eventID string, forwarded ...string) *stream {
 	s.t.Helper()
 	ctx, cancel := context.WithCancel(context.Background())
 	req, err := http.NewRequestWithContext(ctx, "GET", s.server.URL+"/api/events/"+eventID+"/stream", nil)
 	if err != nil {
 		cancel()
 		s.t.Fatalf("request: %v", err)
+	}
+	for _, f := range forwarded {
+		req.Header.Set("X-Forwarded-For", f)
 	}
 	res, err := s.server.Client().Do(req)
 	if err != nil {
@@ -287,4 +292,90 @@ func TestNoStreamWithoutUpdates(t *testing.T) {
 	h := newHarness(t)
 	id := h.create().Event.ID
 	h.do("GET", "/api/events/"+id+"/stream", nil, creds{}).wantError(http.StatusNotFound, "not_found")
+}
+
+func TestStreamsPerClientAreBounded(t *testing.T) {
+	// Rate limits are off in this harness: the bound on streams protects
+	// the process and is always on.
+	s := newStreamHarness(t, time.Hour, func(o *Options) { o.ClientIPHeader = "X-Forwarded-For" })
+	id := s.create().Event.ID
+
+	// Requests that open no stream hold no place.
+	for range 25 {
+		res := s.open(unknownEvent, "192.0.2.7").res
+		if res.StatusCode != http.StatusNotFound {
+			t.Fatalf("stream of an unknown event: status %d", res.StatusCode)
+		}
+		res.Body.Close()
+	}
+
+	var streams []*stream
+	for i := range 20 {
+		st := s.open(id, "192.0.2.7")
+		if st.res.StatusCode != http.StatusOK {
+			t.Fatalf("stream %d: status %d", i+1, st.res.StatusCode)
+		}
+		st.update()
+		streams = append(streams, st)
+	}
+
+	refused := func() {
+		t.Helper()
+		st := s.open(id, "192.0.2.7")
+		defer st.close()
+		if st.res.StatusCode != http.StatusTooManyRequests {
+			t.Fatalf("stream over the bound: status %d, want 429", st.res.StatusCode)
+		}
+		if got := st.res.Header.Get("Retry-After"); got != "30" {
+			t.Fatalf("Retry-After = %q, want 30", got)
+		}
+		if got := st.res.Header.Get("Content-Type"); got != "application/json; charset=utf-8" {
+			t.Fatalf("Content-Type = %q", got)
+		}
+		// The body is one line of JSON, read by the stream's own reader.
+		var e errorView
+		if err := json.Unmarshal([]byte(st.line()), &e); err != nil || e.Error.Code != "rate_limited" {
+			t.Fatalf("error = %+v, %v", e, err)
+		}
+	}
+	refused()
+	refused() // a refusal takes no place and frees none
+
+	// The same client by another spelling of its address is refused too;
+	// another client is not.
+	if st := s.open(id, "::ffff:192.0.2.7"); st.res.StatusCode != http.StatusTooManyRequests {
+		t.Fatalf("the same address in its mapped form: status %d, want 429", st.res.StatusCode)
+	}
+	other := s.open(id, "192.0.2.8")
+	if other.res.StatusCode != http.StatusOK {
+		t.Fatalf("another client: status %d", other.res.StatusCode)
+	}
+	other.update()
+
+	// One closes: one is accepted again, as soon as the server has seen
+	// the client leave, and then the client is at its bound again.
+	streams[3].close()
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		st := s.open(id, "192.0.2.7")
+		if st.res.StatusCode == http.StatusOK {
+			st.update()
+			break
+		}
+		st.close()
+		if time.Now().After(deadline) {
+			t.Fatalf("still refused after a stream closed: status %d", st.res.StatusCode)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	refused()
+
+	// The streams that stayed open still receive.
+	res := s.request("POST", "/api/events/"+id+"/participants", map[string]string{"name": "Luca"}, creds{})
+	res.Body.Close()
+	for _, st := range []*stream{streams[0], streams[19], other} {
+		if got := st.update(); !strings.HasPrefix(got, `{"version":2,"kind":"participants"`) {
+			t.Fatalf("update = %s", got)
+		}
+	}
 }
