@@ -16,7 +16,7 @@ const (
 
 // staticHarness serves a small built frontend. Next to the directory, and
 // so outside it, there is a file that must never be served.
-func staticHarness(t *testing.T) *harness {
+func staticHarness(t *testing.T, change ...func(*Options)) *harness {
 	t.Helper()
 	base := t.TempDir()
 	dir := filepath.Join(base, "static")
@@ -38,7 +38,7 @@ func staticHarness(t *testing.T) *harness {
 	if err := os.Symlink(filepath.Join(base, "secret.txt"), filepath.Join(dir, "assets", "link.txt")); err != nil {
 		t.Fatalf("symlink: %v", err)
 	}
-	return newHarness(t, func(o *Options) { o.StaticDir = dir })
+	return newHarness(t, append([]func(*Options){func(o *Options) { o.StaticDir = dir }}, change...)...)
 }
 
 func TestStaticFiles(t *testing.T) {

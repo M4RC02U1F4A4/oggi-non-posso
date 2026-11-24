@@ -1,10 +1,12 @@
 package api
 
 import (
+	"fmt"
 	"math"
 	"net"
 	"net/http"
 	"net/netip"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"time"
@@ -32,6 +34,31 @@ func securityHeaders(next http.Handler) http.Handler {
 		h.Set("X-Content-Type-Options", "nosniff")
 		h.Set("Referrer-Policy", "no-referrer")
 		h.Set("Content-Security-Policy", contentSecurityPolicy)
+		next.ServeHTTP(w, r)
+	})
+}
+
+// recovered turns a panic in a handler into a logged 500. The path it logs
+// is redacted: see redactPath.
+func (a *api) recovered(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			v := recover()
+			if v == nil {
+				return
+			}
+			if v == http.ErrAbortHandler {
+				// The way a handler asks the server to drop the connection.
+				panic(v)
+			}
+			a.log.Error("panic serving a request",
+				"method", r.Method,
+				"path", redactPath(r.URL.Path),
+				"panic", fmt.Sprint(v),
+				"stack", string(debug.Stack()),
+			)
+			writeError(w, http.StatusInternalServerError, codeInternal, "internal error")
+		}()
 		next.ServeHTTP(w, r)
 	})
 }

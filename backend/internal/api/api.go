@@ -106,7 +106,7 @@ func newAPI(o Options, now func() time.Time) http.Handler {
 	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) { notFound(w) })
 	a.mux = mux
 
-	return securityHeaders(http.HandlerFunc(a.route))
+	return securityHeaders(a.recovered(http.HandlerFunc(a.route)))
 }
 
 // route sends a request to the API, the health check or the frontend.

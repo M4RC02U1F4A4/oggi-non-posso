@@ -62,7 +62,8 @@ func (a *api) fail(w http.ResponseWriter, r *http.Request, err error) {
 		return
 	}
 	// The pattern, not the path: the path holds the event id, and the id is
-	// what the share link is made of.
+	// what the share link is made of. Where a path does go to a log, it
+	// goes through redactPath.
 	if errors.Is(err, context.Canceled) {
 		a.log.Debug("request abandoned by the client", "route", r.Pattern)
 	} else {
