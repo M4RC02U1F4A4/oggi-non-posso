@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  captureOrganiserKey,
   forgetParticipant,
   load,
   organiserUrl,
+  readOrganiserFragment,
   saveOrganiser,
   saveParticipant,
   shareUrl,
+  stripOrganiserFragment,
 } from './credentials'
 
 beforeEach(() => {
@@ -41,36 +42,55 @@ describe('credentials', () => {
   })
 })
 
-describe('captureOrganiserKey', () => {
-  const fakeHistory = () => ({ state: { idx: 3 }, replaceState: vi.fn() })
+const KEY = 'o_l2LAqg8HSphf5JRtEpomL5quhOig2zHq9KZ24zdtHT8'
 
-  it('stores the key of the organiser link and strips the fragment', () => {
-    const history = fakeHistory()
-    const location = { hash: '#o=o_Zx9-_kQ', pathname: '/e/abc', search: '' }
-    expect(captureOrganiserKey('abc', location, history)).toBe(true)
-    expect(load('abc')).toEqual({ organiser: 'o_Zx9-_kQ' })
-    expect(history.replaceState).toHaveBeenCalledWith({ idx: 3 }, '', '/e/abc')
+describe('readOrganiserFragment', () => {
+  it('finds the key of an organiser link', () => {
+    expect(readOrganiserFragment(`#o=${KEY}`)).toEqual({ present: true, key: KEY })
   })
 
-  it('keeps the participant token it already had', () => {
-    saveParticipant('abc', 'p_one')
-    captureOrganiserKey('abc', { hash: '#o=o_key', pathname: '/e/abc', search: '?x=1' }, fakeHistory())
-    expect(load('abc')).toEqual({ participant: 'p_one', organiser: 'o_key' })
+  it('stores nothing by itself', () => {
+    saveOrganiser('abc', 'o_stored')
+    readOrganiserFragment(`#o=${KEY}`)
+    expect(load('abc')).toEqual({ organiser: 'o_stored' })
+  })
+
+  it('does not take for a key what has not the shape of one', () => {
+    for (const hash of [
+      '#o=',
+      '#o=anything',
+      '#o=o_short',
+      '#o=p_l2LAqg8HSphf5JRtEpomL5quhOig2zHq9KZ24zdtHT8',
+      '#o=o_l2LAqg8HSphf5JRtEpomL5quhOig2zHq9KZ24zdtHT8<script>',
+      '#o=o_l2LAqg8HSphf5JRtEpomL5quhOig2zHq9KZ24zd HT8',
+      `#o=o_${'a'.repeat(65)}`,
+    ]) {
+      expect(readOrganiserFragment(hash)).toEqual({ present: true, key: null })
+    }
   })
 
   it('leaves an ordinary address alone', () => {
-    const history = fakeHistory()
-    expect(captureOrganiserKey('abc', { hash: '', pathname: '/e/abc', search: '' }, history)).toBe(false)
-    expect(captureOrganiserKey('abc', { hash: '#calendar', pathname: '/e/abc', search: '' }, history)).toBe(false)
-    expect(history.replaceState).not.toHaveBeenCalled()
-    expect(load('abc')).toEqual({})
+    expect(readOrganiserFragment('')).toEqual({ present: false, key: null })
+    expect(readOrganiserFragment('#calendar')).toEqual({ present: false, key: null })
+  })
+})
+
+describe('stripOrganiserFragment', () => {
+  const fakeHistory = () => ({ state: { idx: 3 }, replaceState: vi.fn() })
+
+  it('takes the fragment out of the address, whatever it holds', () => {
+    for (const hash of [`#o=${KEY}`, '#o=anything', '#o=', '#o=<script>']) {
+      const history = fakeHistory()
+      expect(stripOrganiserFragment({ hash, pathname: '/e/abc', search: '?x=1' }, history)).toBe(true)
+      expect(history.replaceState).toHaveBeenCalledExactlyOnceWith({ idx: 3 }, '', '/e/abc?x=1')
+    }
   })
 
-  it('strips a fragment that is not a key without storing it', () => {
+  it('does not touch an address without one', () => {
     const history = fakeHistory()
-    expect(captureOrganiserKey('abc', { hash: '#o=<script>', pathname: '/e/abc', search: '' }, history)).toBe(false)
-    expect(history.replaceState).toHaveBeenCalledOnce()
-    expect(load('abc')).toEqual({})
+    expect(stripOrganiserFragment({ hash: '', pathname: '/e/abc', search: '' }, history)).toBe(false)
+    expect(stripOrganiserFragment({ hash: '#calendar', pathname: '/e/abc', search: '' }, history)).toBe(false)
+    expect(history.replaceState).not.toHaveBeenCalled()
   })
 })
 

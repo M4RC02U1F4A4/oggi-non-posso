@@ -126,6 +126,7 @@ export const it = {
   'event.tagline.visitor': '{name} cerca una data.',
   'event.loadFailed': 'L’evento non si carica',
   'event.saveFailed': 'Non salvato. {reason}',
+  'event.organiserLinkInvalid': 'Questo link per organizzare non vale per questo evento.',
   'event.removed': 'Chi organizza ha tolto il tuo nome: per segnare di nuovo, scrivilo ancora.',
 
   'people.title': { one: 'Ha segnato una persona', other: 'Hanno segnato in {count}' },

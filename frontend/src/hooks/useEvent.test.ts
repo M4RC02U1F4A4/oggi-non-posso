@@ -430,3 +430,89 @@ describe('organising', () => {
     expect(closeEvent).not.toHaveBeenCalled()
   })
 })
+
+describe('organiser link', () => {
+  const CANDIDATE = 'o_candidateKeyFromALinkThatMayBeAnyones000000'
+
+  async function mountWith(candidate: string) {
+    const hook = renderHook(() => useEvent(ID, candidate))
+    await settle()
+    return hook
+  }
+
+  it('stores the key once the server says it manages the event', async () => {
+    credentials.saveParticipant(ID, 'p_giulia')
+    getEvent.mockResolvedValue(fixtureEvent('Giulia', { can_manage: true }))
+
+    const { result } = await mountWith(CANDIDATE)
+
+    expect(getEvent).toHaveBeenCalledTimes(1)
+    expect(getEvent).toHaveBeenCalledWith(ID, { participant: 'p_giulia', organiser: CANDIDATE })
+    expect(credentials.load(ID)).toEqual({ participant: 'p_giulia', organiser: CANDIDATE })
+    expect(result.current.event?.can_manage).toBe(true)
+    expect(result.current.organiserLinkRejected).toBe(false)
+  })
+
+  it('does not store a key the server does not recognise', async () => {
+    getEvent.mockResolvedValue(fixtureEvent(null, { can_manage: false }))
+
+    const { result } = await mountWith(CANDIDATE)
+
+    expect(credentials.load(ID)).toEqual({})
+    expect(result.current.state).toBe('ready')
+    expect(result.current.event?.can_manage).toBe(false)
+    expect(result.current.organiserLinkRejected).toBe(true)
+  })
+
+  it('keeps a stored key that works when the link carries one that does not', async () => {
+    credentials.saveOrganiser(ID, 'o_stored')
+    getEvent.mockImplementation(async (_id, sent) =>
+      fixtureEvent(null, { can_manage: sent?.organiser === 'o_stored' }),
+    )
+
+    const { result } = await mountWith(CANDIDATE)
+
+    expect(getEvent).toHaveBeenCalledTimes(2)
+    expect(getEvent).toHaveBeenNthCalledWith(1, ID, { organiser: CANDIDATE })
+    expect(getEvent).toHaveBeenNthCalledWith(2, ID, { organiser: 'o_stored' })
+    expect(credentials.load(ID)).toEqual({ organiser: 'o_stored' })
+    expect(result.current.event?.can_manage).toBe(true)
+    expect(result.current.organiserLinkRejected).toBe(true)
+  })
+
+  it('replaces a stored key with another that works too', async () => {
+    credentials.saveOrganiser(ID, 'o_stored')
+    getEvent.mockResolvedValue(fixtureEvent(null, { can_manage: true }))
+
+    const { result } = await mountWith(CANDIDATE)
+
+    expect(credentials.load(ID)).toEqual({ organiser: CANDIDATE })
+    expect(result.current.organiserLinkRejected).toBe(false)
+  })
+
+  it('keeps the stored key when the request fails, and asks again on the next try', async () => {
+    credentials.saveOrganiser(ID, 'o_stored')
+    getEvent.mockRejectedValueOnce(new ApiError('network', 0))
+
+    const { result } = await mountWith(CANDIDATE)
+    expect(result.current.state).toBe('error')
+    expect(credentials.load(ID)).toEqual({ organiser: 'o_stored' })
+    expect(result.current.organiserLinkRejected).toBe(false)
+
+    getEvent.mockResolvedValue(fixtureEvent(null, { can_manage: true }))
+    act(() => result.current.refresh())
+    await settle()
+    expect(getEvent).toHaveBeenLastCalledWith(ID, { organiser: CANDIDATE })
+    expect(credentials.load(ID)).toEqual({ organiser: CANDIDATE })
+  })
+
+  it('asks about the candidate once, then reads with what is stored', async () => {
+    getEvent.mockResolvedValue(fixtureEvent(null, { can_manage: false }))
+    const { result } = await mountWith(CANDIDATE)
+
+    act(() => result.current.refresh())
+    await settle()
+    expect(getEvent).toHaveBeenCalledTimes(2)
+    expect(getEvent).toHaveBeenLastCalledWith(ID, {})
+  })
+})

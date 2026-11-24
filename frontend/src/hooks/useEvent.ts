@@ -32,6 +32,8 @@ export interface UseEvent {
   saveError: ErrorCode | null
   /** True when this browser's participant was removed and has to give a name again. */
   dropped: boolean
+  /** True when the key of an organiser link turned out not to manage this event. */
+  organiserLinkRejected: boolean
   /** Rejects with an ApiError the form can show (not for a closed event: the page just moves on). */
   join(name: string): Promise<void>
   /** Optimistic. One pair is a cell; a day's candidate pairs are the whole day. */
@@ -42,13 +44,20 @@ export interface UseEvent {
   remove(participantId: string): Promise<void>
 }
 
-export function useEvent(id: string): UseEvent {
+/**
+ * `organiserCandidate` is a key read from an organiser link. It is not
+ * trusted: the first read of the event carries it, and it is stored only if
+ * the server answers that it manages the event. A key that does not is
+ * dropped, and whatever key was stored before stays.
+ */
+export function useEvent(id: string, organiserCandidate?: string | null): UseEvent {
   const [state, setState] = useState<LoadState>('loading')
   const [server, setServer] = useState<EventData>()
   const [pending, setPending] = useState<AbsenceChange[]>([])
   const [loadError, setLoadError] = useState<ErrorCode | null>(null)
   const [saveError, setSaveError] = useState<ErrorCode | null>(null)
   const [dropped, setDropped] = useState(false)
+  const [organiserLinkRejected, setOrganiserLinkRejected] = useState(false)
   const [marking, setMarking] = useState<Set<string>>(() => new Set())
 
   // The same values for the asynchronous paths, which must not read a stale render.
@@ -61,6 +70,8 @@ export function useEvent(id: string): UseEvent {
   // with the old ones is thrown away instead of being believed.
   const epochRef = useRef(0)
   const aliveRef = useRef(true)
+  // The key of an organiser link, until the server has had its say on it.
+  const candidateRef = useRef(organiserCandidate ?? null)
   const markTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>())
 
   const accept = useCallback((event: EventData) => {
@@ -94,12 +105,29 @@ export function useEvent(id: string): UseEvent {
         loadAgainRef.current = false
         const epoch = epochRef.current
         const stored = credentials.load(id)
+        const candidate = candidateRef.current
         try {
-          const event = await getEvent(id, stored)
+          const event = await getEvent(id, candidate === null ? stored : { ...stored, organiser: candidate })
           if (!aliveRef.current) return
           if (epoch !== epochRef.current) {
             loadAgainRef.current = true
             continue
+          }
+          if (candidate !== null) {
+            // The server answered: the candidate is settled either way. (A
+            // request that fails settles nothing, and the next one asks again.)
+            candidateRef.current = null
+            if (event.can_manage) {
+              credentials.saveOrganiser(id, candidate)
+            } else {
+              setOrganiserLinkRejected(true)
+              if (stored.organiser !== undefined) {
+                // This answer was written for the rejected key. Ask again
+                // with the stored one, which may well be good.
+                loadAgainRef.current = true
+                continue
+              }
+            }
           }
           if (event.me === null && stored.participant !== undefined) {
             // The token no longer names anyone: the participant was removed.
@@ -282,6 +310,7 @@ export function useEvent(id: string): UseEvent {
     saveState,
     saveError,
     dropped,
+    organiserLinkRejected,
     join,
     toggle,
     refresh,

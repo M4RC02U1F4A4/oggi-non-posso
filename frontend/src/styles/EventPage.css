@@ -35,6 +35,14 @@
   margin-top: 26px;
 }
 
+.event-notice {
+  padding-top: 16px;
+}
+
+.event-notice .alert {
+  display: block;
+}
+
 .event-message {
   padding-top: 24px;
   padding-bottom: 48px;

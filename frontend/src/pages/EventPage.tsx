@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useParams } from 'react-router'
 import type { EventData } from '../api/types'
 import { Band } from '../components/Band'
@@ -10,7 +10,7 @@ import { VoteTable } from '../components/VoteTable'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useEvent, type UseEvent } from '../hooks/useEvent'
 import { joinList, t } from '../i18n'
-import { captureOrganiserKey } from '../lib/credentials'
+import { readOrganiserFragment, stripOrganiserFragment } from '../lib/credentials'
 import { countMarked, findParticipant, organiserOf } from '../lib/grid'
 import { NotFoundPage } from './NotFoundPage'
 import '../styles/EventPage.css'
@@ -22,11 +22,16 @@ export function EventPage() {
 }
 
 function EventView({ id }: { id: string }) {
-  // The organiser link carries its key in the fragment. Take it before the
-  // first request, so that request already goes out as the organiser.
-  useState(() => captureOrganiserKey(id, window.location, window.history))
-  const live = useEvent(id)
+  // The organiser link carries its key in the fragment. The key goes to the
+  // hook as a candidate, to be checked with the server before it is stored;
+  // the fragment leaves the address bar at once, whatever it holds.
+  const [fragment] = useState(() => readOrganiserFragment(window.location.hash))
+  useEffect(() => {
+    stripOrganiserFragment(window.location, window.history)
+  }, [])
+  const live = useEvent(id, fragment.key)
   useDocumentTitle(live.event?.title)
+  const badOrganiserLink = live.organiserLinkRejected || (fragment.present && fragment.key === null)
 
   if (live.state === 'not_found') return <NotFoundPage kind="event" />
 
@@ -55,14 +60,20 @@ function EventView({ id }: { id: string }) {
     )
   }
 
+  const notice = badOrganiserLink ? (
+    <p className="wrap event-notice" role="status">
+      <span className="alert">{t('event.organiserLinkInvalid')}</span>
+    </p>
+  ) : null
+
   return live.event.status === 'open' ? (
-    <OpenEvent event={live.event} live={live} />
+    <OpenEvent event={live.event} live={live} notice={notice} />
   ) : (
-    <ClosedEvent event={live.event} />
+    <ClosedEvent event={live.event} notice={notice} />
   )
 }
 
-function OpenEvent({ event, live }: { event: EventData; live: UseEvent }) {
+function OpenEvent({ event, live, notice }: { event: EventData; live: UseEvent; notice: ReactNode }) {
   const me = findParticipant(event, event.me)
   const organiser = organiserOf(event)
   const count = event.participants.length
@@ -102,6 +113,7 @@ function OpenEvent({ event, live }: { event: EventData; live: UseEvent }) {
         }
       />
 
+      {notice}
       <main className="wrap event">
         {!me && (
           <div className="event__join">
@@ -175,10 +187,11 @@ function OpenEvent({ event, live }: { event: EventData; live: UseEvent }) {
 
 // The closed event gets its own view with the alternatives; until then,
 // the table to look at.
-function ClosedEvent({ event }: { event: EventData }) {
+function ClosedEvent({ event, notice }: { event: EventData; notice: ReactNode }) {
   return (
     <div className="page">
       <Band title={event.title} status={t('result.status')} />
+      {notice}
       <main className="wrap event">
         <div className="event__table">
           <VoteTable event={event} mode="read" />

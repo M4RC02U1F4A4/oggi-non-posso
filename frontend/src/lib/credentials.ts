@@ -60,23 +60,41 @@ export function forgetParticipant(eventId: string): void {
   save(eventId, organiser === undefined ? {} : { organiser })
 }
 
-const ORGANISER_FRAGMENT = /^#o=(o_[A-Za-z0-9_-]+)$/
+const FRAGMENT_PREFIX = '#o='
+// An organiser key is `o_` and 32 random bytes in base64url: 43 characters.
+// A little slack on the length, none on the alphabet.
+const ORGANISER_KEY = /^o_[A-Za-z0-9_-]{32,64}$/
+
+export interface OrganiserFragment {
+  /** True when the address claims to be an organiser link (`#o=…`). */
+  present: boolean
+  /** The key it carries, when it has the shape of one. Not yet known to be valid. */
+  key: string | null
+}
 
 /**
- * The organiser link is `/e/<id>#o=<key>`. Stores the key for the event and
- * takes it out of the address bar, so it is not copied by accident with the
- * address. Returns true when a key was found.
+ * Reads the fragment of an organiser link, `/e/<id>#o=<key>`. What comes out
+ * is only a candidate: anyone can write such a link, so the key is stored
+ * only after the server has said that it manages this event.
  */
-export function captureOrganiserKey(
-  eventId: string,
+export function readOrganiserFragment(hash: string): OrganiserFragment {
+  if (!hash.startsWith(FRAGMENT_PREFIX)) return { present: false, key: null }
+  const value = hash.slice(FRAGMENT_PREFIX.length)
+  return { present: true, key: ORGANISER_KEY.test(value) ? value : null }
+}
+
+/**
+ * Takes an organiser fragment out of the address bar, whatever it holds, so
+ * a key is not copied by accident with the address and does not stay in the
+ * history. Returns true when there was one.
+ */
+export function stripOrganiserFragment(
   location: Pick<Location, 'hash' | 'pathname' | 'search'>,
   history: Pick<History, 'replaceState' | 'state'>,
 ): boolean {
-  if (!location.hash.startsWith('#o=')) return false
-  const match = ORGANISER_FRAGMENT.exec(location.hash)
-  if (match) saveOrganiser(eventId, match[1] as string)
+  if (!location.hash.startsWith(FRAGMENT_PREFIX)) return false
   history.replaceState(history.state, '', location.pathname + location.search)
-  return match !== null
+  return true
 }
 
 export function shareUrl(origin: string, eventId: string): string {
