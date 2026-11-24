@@ -480,7 +480,7 @@ useEventStream(id, onUpdate: (u: { version; kind; by }) => void): void // reconn
 
 - [ ] `ResultView` as in the mockup "Risultato": headline from the number of
       everyone-free groups ("Ci siete tutti in tre momenti"; with none,
-      "Non c'è un momento per tutti"), the groups, "Se ne manca uno solo" (or
+      "Non c'è un momento per tutti"), the groups, "Se manca una persona sola" (or
       the best tier's heading), the whole table with counts and yellow
       everyone-free cells. Test the headline and heading choice on the
       fixture and on a no-free event.

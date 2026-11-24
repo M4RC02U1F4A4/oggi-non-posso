@@ -134,7 +134,9 @@ Computed only for a closed event:
 
 ## API contract
 
-JSON over HTTP, UTF-8, every path under `/api`. Every response under `/api`
+JSON over HTTP, UTF-8, every path under `/api`. A request with a body must
+send `Content-Type: application/json`; anything else is `400 invalid_request`
+(so another site can not post to the API through its visitors' browsers). Every response under `/api`
 carries `Cache-Control: no-store`.
 
 ### Credentials
@@ -289,6 +291,8 @@ Environment only, prefix `ONP_`, defaults in the code:
 A bad value stops the process with exit code 2 and names the variable.
 
 Rate limits, per client address: 10 new events per hour, 30 joins per hour.
+At most 20 open streams per client address and 2000 in all. An IPv6
+address counts by its /56, the block a home line is commonly given.
 
 ## Frontend
 
