@@ -4,6 +4,7 @@ import (
 	"math"
 	"net"
 	"net/http"
+	"net/netip"
 	"strconv"
 	"strings"
 	"time"
@@ -52,22 +53,51 @@ func (a *api) allow(w http.ResponseWriter, r *http.Request, l *ratelimit.Limiter
 	return false
 }
 
-// clientAddress returns the address rate limits count by: the connection's
-// or, behind a trusted proxy, the last element of the configured header,
-// which is the one the proxy itself wrote. Without the header the
-// connection's address is used.
+// clientAddress returns the key rate limits count a request by: the
+// address of the connection or, behind a trusted proxy, the last element
+// of the configured header, which is the one the proxy itself wrote. The
+// header is used only when that element is an IP address: missing, empty
+// or anything else, the address of the connection counts instead, so the
+// text of a header is never a key.
 func (a *api) clientAddress(r *http.Request) string {
 	if a.clientIPHeader != "" {
 		if values := r.Header.Values(a.clientIPHeader); len(values) > 0 {
 			elements := strings.Split(values[len(values)-1], ",")
-			if last := strings.TrimSpace(elements[len(elements)-1]); last != "" {
-				return last
+			if key, ok := addressKey(strings.TrimSpace(elements[len(elements)-1])); ok {
+				return key
 			}
 		}
 	}
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
-		return r.RemoteAddr
+		host = r.RemoteAddr
 	}
+	if key, ok := addressKey(host); ok {
+		return key
+	}
+	// Not an IP connection: one key for all of them.
 	return host
+}
+
+// addressKey turns an IP address into the key it is counted under, and
+// reports false for anything that is not an IP address.
+//
+// An IPv4 address is its own key, also when it arrives written as an
+// IPv4-mapped IPv6 address. An IPv6 address is counted by its /64: that is
+// what one subscriber is given, so whoever holds one can change address
+// inside it at will. A zone is dropped.
+func addressKey(s string) (string, bool) {
+	addr, err := netip.ParseAddr(s)
+	if err != nil {
+		return "", false
+	}
+	addr = addr.Unmap().WithZone("")
+	if addr.Is4() {
+		return addr.String(), true
+	}
+	network, err := addr.Prefix(64)
+	if err != nil {
+		return "", false
+	}
+	return network.String(), true
 }

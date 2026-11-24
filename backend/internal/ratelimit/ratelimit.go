@@ -6,17 +6,32 @@ import (
 	"time"
 )
 
+// MaxKeys is the most keys a Limiter follows at one time. It bounds the
+// memory a limiter can take, whatever the number of keys it is shown.
+const MaxKeys = 100_000
+
 // Limiter allows a number of requests per key in each window. The window
 // of a key begins with its first request and is not moved by the requests
 // that follow, refused ones included.
+//
+// A limiter follows at most MaxKeys keys. While it is full a key it does
+// not follow yet is refused, as if it were over its limit, until a window
+// ends and makes room: it neither grows without bound nor lets through
+// what it can not count.
 type Limiter struct {
-	limit  int
-	window time.Duration
-	now    func() time.Time
+	limit   int
+	window  time.Duration
+	now     func() time.Time
+	maxKeys int
 
 	mu      sync.Mutex
 	windows map[string]*window
-	sweepAt time.Time // when to drop the windows that are over
+	// sweepAt is when the windows that are over are dropped next, so that
+	// they go even if nobody asks about their keys again.
+	sweepAt time.Time
+	// oldestEnds is when the oldest window found by the last sweep ends:
+	// before that moment another sweep can not free anything.
+	oldestEnds time.Time
 }
 
 type window struct {
@@ -30,20 +45,44 @@ func New(limit int, per time.Duration, now func() time.Time) *Limiter {
 	if now == nil {
 		now = time.Now
 	}
-	return &Limiter{limit: limit, window: per, now: now, windows: make(map[string]*window)}
+	return &Limiter{
+		limit:   limit,
+		window:  per,
+		now:     now,
+		maxKeys: MaxKeys,
+		windows: make(map[string]*window),
+	}
 }
 
 // Allow counts a request for key and reports whether it is within the
-// limit. When it is not, retryAfter is the time left in the key's window.
+// limit. When it is not, retryAfter is the time left in the key's window
+// or, for a new key refused because the limiter is full, the time until
+// the oldest window ends.
 func (l *Limiter) Allow(key string) (ok bool, retryAfter time.Duration) {
 	now := l.now()
 
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	l.sweep(now)
+	if !now.Before(l.sweepAt) {
+		l.sweep(now)
+	}
 
 	w := l.windows[key]
-	if w == nil || now.Sub(w.start) >= l.window {
+	if w != nil && now.Sub(w.start) >= l.window {
+		delete(l.windows, key)
+		w = nil
+	}
+	if w == nil {
+		if len(l.windows) >= l.maxKeys {
+			// Full. Sweeping costs a pass over every key, so it is done
+			// only when it can free something.
+			if !now.Before(l.oldestEnds) {
+				l.sweep(now)
+			}
+			if len(l.windows) >= l.maxKeys {
+				return false, l.oldestEnds.Sub(now)
+			}
+		}
 		w = &window{start: now}
 		l.windows[key] = w
 	}
@@ -54,16 +93,19 @@ func (l *Limiter) Allow(key string) (ok bool, retryAfter time.Duration) {
 	return true, 0
 }
 
-// sweep forgets, once per window, the keys whose window is over, so the
-// map does not grow with every address ever seen.
+// sweep forgets the keys whose window is over and notes when the oldest
+// of the others ends.
 func (l *Limiter) sweep(now time.Time) {
-	if now.Before(l.sweepAt) {
-		return
-	}
+	var oldest time.Time
 	for key, w := range l.windows {
 		if now.Sub(w.start) >= l.window {
 			delete(l.windows, key)
+			continue
+		}
+		if oldest.IsZero() || w.start.Before(oldest) {
+			oldest = w.start
 		}
 	}
 	l.sweepAt = now.Add(l.window)
+	l.oldestEnds = oldest.Add(l.window)
 }

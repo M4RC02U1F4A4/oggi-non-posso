@@ -124,3 +124,84 @@ func TestConcurrentAllow(t *testing.T) {
 		t.Fatalf("%d requests allowed, want 100", allowed)
 	}
 }
+
+func TestTheNumberOfKeysIsCapped(t *testing.T) {
+	c := newClock()
+	l := New(2, time.Hour, c.now)
+	l.maxKeys = 3
+
+	// Three keys, ten minutes apart, fill the limiter.
+	for _, key := range []string{"a", "b", "c"} {
+		if ok, _ := l.Allow(key); !ok {
+			t.Fatalf("key %s refused", key)
+		}
+		c.advance(10 * time.Minute)
+	}
+
+	// A fourth key is refused, not let through, until the oldest window
+	// ends: 30 minutes into the hour of "a".
+	if ok, retry := l.Allow("d"); ok || retry != 30*time.Minute {
+		t.Fatalf("key over the cap: ok %v, retry %v, want refused for 30m", ok, retry)
+	}
+	if got := len(l.windows); got != 3 {
+		t.Fatalf("%d keys kept, want 3", got)
+	}
+	// The keys that are in keep their own budget.
+	if ok, _ := l.Allow("b"); !ok {
+		t.Fatal("a key that is in was refused because the limiter is full")
+	}
+	if ok, _ := l.Allow("b"); ok {
+		t.Fatal("a key that is in went over its own limit")
+	}
+	c.advance(29 * time.Minute)
+	if ok, retry := l.Allow("e"); ok || retry != time.Minute {
+		t.Fatalf("one minute before a window ends: ok %v, retry %v", ok, retry)
+	}
+
+	// The window of "a" ends: there is room for one new key, not for two.
+	c.advance(time.Minute)
+	if ok, _ := l.Allow("d"); !ok {
+		t.Fatal("refused after a window expired")
+	}
+	if ok, retry := l.Allow("e"); ok || retry != 10*time.Minute {
+		t.Fatalf("second new key: ok %v, retry %v, want refused for 10m (the window of b)", ok, retry)
+	}
+	if got := len(l.windows); got != 3 {
+		t.Fatalf("%d keys kept, want 3", got)
+	}
+
+	// Once every window has expired the limiter is empty again.
+	c.advance(2 * time.Hour)
+	for _, key := range []string{"e", "f", "g"} {
+		if ok, _ := l.Allow(key); !ok {
+			t.Fatalf("key %s refused after every window expired", key)
+		}
+	}
+	if ok, _ := l.Allow("h"); ok {
+		t.Fatal("a fourth key was accepted")
+	}
+}
+
+func TestAKeyWhoseWindowEndedTakesItsPlaceAgain(t *testing.T) {
+	c := newClock()
+	l := New(1, time.Hour, c.now)
+	l.maxKeys = 2
+	l.Allow("a")
+	c.advance(30 * time.Minute)
+	l.Allow("b")
+	c.advance(30 * time.Minute)
+
+	// "a" is over; it comes back and the limiter is full again.
+	if ok, _ := l.Allow("a"); !ok {
+		t.Fatal("a key whose window ended was refused")
+	}
+	if ok, retry := l.Allow("c"); ok || retry != 30*time.Minute {
+		t.Fatalf("new key: ok %v, retry %v, want refused for 30m (the window of b)", ok, retry)
+	}
+}
+
+func TestDefaultCap(t *testing.T) {
+	if l := New(1, time.Hour, nil); l.maxKeys != MaxKeys || MaxKeys != 100_000 {
+		t.Fatalf("maxKeys = %d, MaxKeys = %d", l.maxKeys, MaxKeys)
+	}
+}
