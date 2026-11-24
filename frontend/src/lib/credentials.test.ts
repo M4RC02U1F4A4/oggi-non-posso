@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   forgetParticipant,
   load,
@@ -38,6 +38,69 @@ describe('credentials', () => {
   it('survives a broken entry', () => {
     window.localStorage.setItem('onp:event:abc', '{not json')
     expect(load('abc')).toEqual({})
+  })
+})
+
+describe('without a working localStorage', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  const refuseWrites = () =>
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('The quota has been exceeded.', 'QuotaExceededError')
+    })
+
+  const takeStorageAway = () =>
+    vi.spyOn(window, 'localStorage', 'get').mockImplementation(() => {
+      throw new DOMException('The operation is insecure.', 'SecurityError')
+    })
+
+  it('keeps the credentials in memory when storage can not be reached', () => {
+    takeStorageAway()
+    saveParticipant('gone-1', 'p_one')
+    saveOrganiser('gone-1', ORGANISER_KEY)
+    expect(load('gone-1')).toEqual({ participant: 'p_one', organiser: ORGANISER_KEY })
+    expect(load('gone-other')).toEqual({})
+
+    forgetParticipant('gone-1')
+    expect(load('gone-1')).toEqual({ organiser: ORGANISER_KEY })
+  })
+
+  it('keeps them in memory when storage refuses the write', () => {
+    refuseWrites()
+    saveParticipant('full-1', 'p_one')
+    expect(window.localStorage.getItem('onp:event:full-1')).toBeNull()
+    expect(load('full-1')).toEqual({ participant: 'p_one' })
+  })
+
+  it('prefers what it could not write to what storage still holds', () => {
+    saveParticipant('full-2', 'p_old')
+    refuseWrites()
+    saveParticipant('full-2', 'p_new')
+    expect(load('full-2')).toEqual({ participant: 'p_new' })
+  })
+
+  it('goes back to storage as soon as a write gets through', () => {
+    const refusing = refuseWrites()
+    saveParticipant('full-3', 'p_one')
+    refusing.mockRestore()
+
+    saveOrganiser('full-3', ORGANISER_KEY)
+    expect(JSON.parse(window.localStorage.getItem('onp:event:full-3') ?? '{}')).toEqual({
+      participant: 'p_one',
+      organiser: ORGANISER_KEY,
+    })
+    // Nothing is left in memory: storage alone answers from here on.
+    window.localStorage.clear()
+    expect(load('full-3')).toEqual({})
+  })
+
+  it('hands out copies, not the object it keeps', () => {
+    takeStorageAway()
+    saveParticipant('gone-2', 'p_one')
+    load('gone-2').participant = 'p_changed'
+    expect(load('gone-2')).toEqual({ participant: 'p_one' })
   })
 })
 

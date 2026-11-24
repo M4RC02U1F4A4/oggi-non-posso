@@ -432,6 +432,36 @@ describe('joining', () => {
     expect(result.current.event?.me).toBe(idOf('Paolo'))
   })
 
+  it('stays a participant when the browser has no storage to keep the token in', async () => {
+    const storage = vi.spyOn(window, 'localStorage', 'get').mockImplementation(() => {
+      throw new DOMException('The operation is insecure.', 'SecurityError')
+    })
+    try {
+      getEvent.mockResolvedValue(fixtureEvent())
+      const { result } = await mount()
+      joinEvent.mockResolvedValue({ event: fixtureEvent('Anna', { version: 41 }), participant_token: 'p_new' })
+      getEvent.mockResolvedValue(fixtureEvent('Anna', { version: 41 }))
+
+      await act(() => result.current.join('Anna'))
+      expect(result.current.event?.me).toBe(idOf('Anna'))
+
+      // A later read still goes out as that participant, and so does a mark.
+      act(() => result.current.refresh())
+      await settle()
+      expect(getEvent).toHaveBeenLastCalledWith(ID, { participant: 'p_new' })
+      expect(result.current.event?.me).toBe(idOf('Anna'))
+      expect(result.current.dropped).toBe(false)
+
+      changeAbsences.mockResolvedValue(marked(42))
+      act(() => result.current.toggle([DINNER]))
+      await settle()
+      expect(changeAbsences).toHaveBeenCalledWith(ID, 'p_new', { set: [DINNER], clear: [] })
+    } finally {
+      storage.mockRestore()
+      credentials.forgetParticipant(ID)
+    }
+  })
+
   it('hands the error to the form', async () => {
     getEvent.mockResolvedValue(fixtureEvent())
     const { result } = await mount()
