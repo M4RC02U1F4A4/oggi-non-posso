@@ -92,8 +92,16 @@ h3 {
   gap: 12px;
   border-top: 3px solid var(--rule-strong);
   padding: 7px 0;
+  font-family: var(--font-display);
   font-size: 1.5rem;
+  font-weight: 700;
   line-height: 1.2;
+}
+
+/* When the title shares its line with something else, the rule is on the line. */
+.section-title h2 {
+  flex: none;
+  font: inherit;
 }
 
 .section-title small {

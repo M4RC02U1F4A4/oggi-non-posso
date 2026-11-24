@@ -30,6 +30,12 @@ export const it = {
   'slot.short.afternoon': 'Pom.',
   'slot.short.dinner': 'Cena',
   'slot.short.after_dinner': 'Dopo',
+  // For a narrow button: wider than a table header, narrower than a column.
+  'slot.medium.morning': 'Mattina',
+  'slot.medium.lunch': 'Pranzo',
+  'slot.medium.afternoon': 'Pom.',
+  'slot.medium.dinner': 'Cena',
+  'slot.medium.after_dinner': 'Dopo',
   'slot.inline.morning': 'mattina',
   'slot.inline.lunch': 'pranzo',
   'slot.inline.afternoon': 'pomeriggio',
@@ -254,8 +260,6 @@ export const it = {
   'create.days.title': 'Giorni possibili',
   'create.days.prev': 'Mese precedente',
   'create.days.next': 'Mese successivo',
-  'create.days.pick': '{day}: aggiungi',
-  'create.days.unpick': '{day}: scelto, tocca per togliere',
   'create.days.past': '{day}: già passato',
   'create.days.full': 'Al massimo {max} giorni: togline uno per aggiungerne un altro.',
   'create.slots.title': 'Fasce della giornata',
@@ -274,6 +278,7 @@ export const it = {
   },
   'create.perDay.empty': 'Scegli prima i giorni dal calendario.',
   'create.perDay.slot': '{day}, {slot}',
+  'create.perDay.last': '{day}, {slot}: è l’unica fascia rimasta',
   'create.note': 'Niente account. Ti diamo un link da mandare agli altri e uno solo tuo per chiudere la votazione.',
   'create.submit': 'Crea e prendi il link',
   'create.error.title': 'Scrivi cosa organizzi.',
@@ -293,6 +298,7 @@ export const it = {
   'created.own.text':
     'Con questo chiudi la votazione, anche da un altro telefono. Tienilo da parte e non mandarlo in giro.',
   'created.own.copy': 'Copia il link per organizzare',
+  'created.own.masked': '{start}…{end}',
   'created.next.text':
     'Questo browser ti riconosce già come {name} e come chi organizza: puoi segnare subito le tue fasce.',
   'created.next.open': 'Apri l’evento e segna le tue',
