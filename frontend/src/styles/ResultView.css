@@ -77,10 +77,12 @@
   margin-top: 14px;
 }
 
-/* A moment with someone missing. */
+/* A moment with someone missing. On the phone "senza …" goes on its own
+   line under the slots: beside them, a long name or several people missing
+   took the whole row and left the slots a column a letter wide. */
 .result__near {
   display: grid;
-  grid-template-columns: 70px minmax(0, 1fr) auto;
+  grid-template-columns: 70px minmax(0, 1fr);
   column-gap: 8px;
   border-top: 1px solid var(--rule);
   padding: 6px 0;
@@ -89,7 +91,7 @@
 }
 
 .result__list--month .result__near {
-  grid-template-columns: 96px minmax(0, 1fr) auto;
+  grid-template-columns: 96px minmax(0, 1fr);
 }
 
 .result__near b {
@@ -97,9 +99,10 @@
 }
 
 .result__near em {
+  grid-column: 2;
   color: var(--mute);
   font-style: normal;
-  text-align: right;
+  overflow-wrap: anywhere;
 }
 
 .result__calendar .section-title {
@@ -165,10 +168,18 @@
     margin-top: 22px;
   }
 
+  /* With room: the slots keep their own width, the names take the rest
+     and wrap inside it. */
   .result__near,
   .result__list--month .result__near {
-    grid-template-columns: clamp(190px, 18vw, 230px) minmax(0, 1fr) auto;
+    grid-template-columns: clamp(190px, 18vw, 230px) minmax(max-content, 1fr) minmax(0, auto);
+    column-gap: 16px;
     padding: 7px 0;
     font-size: 1rem;
+  }
+
+  .result__near em {
+    grid-column: auto;
+    text-align: right;
   }
 }
