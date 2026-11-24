@@ -70,6 +70,9 @@ func (s *streamHarness) request(method, path string, body any, c creds) *http.Re
 	if err != nil {
 		s.t.Fatalf("request: %v", err)
 	}
+	if reader != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
 	if c.token != "" {
 		req.Header.Set("Authorization", "Bearer "+c.token)
 	}

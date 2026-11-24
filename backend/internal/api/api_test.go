@@ -190,6 +190,9 @@ func (h *harness) do(method, path string, body any, c creds) *response {
 		reader = bytes.NewReader(raw)
 	}
 	req := httptest.NewRequest(method, path, reader)
+	if reader != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
 	if c.token != "" {
 		req.Header.Set("Authorization", "Bearer "+c.token)
 	}

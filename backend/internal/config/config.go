@@ -5,6 +5,7 @@ package config
 import (
 	"fmt"
 	"log/slog"
+	"net"
 	"strconv"
 )
 
@@ -41,6 +42,9 @@ func Load(getenv func(string) string) (Config, error) {
 	c := Defaults()
 
 	if v := getenv("ONP_LISTEN"); v != "" {
+		if _, port, err := net.SplitHostPort(v); err != nil || port == "" {
+			return Config{}, fmt.Errorf("ONP_LISTEN: %q is not an address like :8080 or 127.0.0.1:8080", v)
+		}
 		c.Listen = v
 	}
 	if v := getenv("ONP_DB_PATH"); v != "" {
