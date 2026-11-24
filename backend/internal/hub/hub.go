@@ -9,7 +9,13 @@ type Hub struct {
 	subscribers map[string]map[*subscriber]struct{} // by event id
 }
 
-// subscriber holds at most one pending update: the newest.
+// Pending is how many updates a subscriber that has not read yet keeps. A
+// burst of marks by different people stays whole, so each one is reported
+// with its own `by`; a subscriber further behind loses the oldest ones,
+// which is harmless: a client refetches on the newest version it sees.
+const Pending = 16
+
+// subscriber holds the updates it has not read yet, at most Pending.
 type subscriber struct {
 	ch chan Update
 }
@@ -24,7 +30,7 @@ func New() *Hub {
 // after cancel it simply receives nothing more. cancel may be called more
 // than once.
 func (h *Hub) Subscribe(eventID string) (<-chan Update, func()) {
-	s := &subscriber{ch: make(chan Update, 1)}
+	s := &subscriber{ch: make(chan Update, Pending)}
 
 	h.mu.Lock()
 	set := h.subscribers[eventID]
@@ -48,27 +54,24 @@ func (h *Hub) Subscribe(eventID string) (<-chan Update, func()) {
 }
 
 // Publish hands u to every subscriber of the event. It never blocks: a
-// subscriber that has not read its pending update keeps only the newest of
-// the two, the one with the higher version.
+// subscriber whose queue is full loses its oldest pending update.
 func (h *Hub) Publish(eventID string, u Update) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	for s := range h.subscribers[eventID] {
-		select {
-		case s.ch <- u:
-			continue
-		default:
-		}
-		// The slot is taken. Publishers are serialised by the lock, so
-		// between these two steps the subscriber can only empty it.
-		newest := u
-		select {
-		case pending := <-s.ch:
-			if pending.Version > newest.Version {
-				newest = pending
+		for {
+			select {
+			case s.ch <- u:
+			default:
+				// Full. Publishers are serialised by the lock, so only the
+				// subscriber can be emptying the queue meanwhile.
+				select {
+				case <-s.ch:
+				default:
+				}
+				continue
 			}
-		default:
+			break
 		}
-		s.ch <- newest
 	}
 }

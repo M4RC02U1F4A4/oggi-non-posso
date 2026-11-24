@@ -1256,3 +1256,14 @@ func contains(list []string, s string) bool {
 	}
 	return false
 }
+
+func TestHeadIsNotFoundUnderAPI(t *testing.T) {
+	h := newHarness(t)
+	id := h.create().Event.ID
+	for _, p := range []string{"/api/events/" + id, "/api/events/" + id + "/stream"} {
+		res := h.do("HEAD", p, nil, creds{})
+		if res.status != http.StatusNotFound {
+			t.Errorf("HEAD %s: status %d, want 404", p, res.status)
+		}
+	}
+}

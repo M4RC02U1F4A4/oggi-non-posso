@@ -56,7 +56,7 @@ func TestSubscribersReceive(t *testing.T) {
 	}
 }
 
-func TestSlowSubscriberKeepsOnlyTheNewest(t *testing.T) {
+func TestSlowSubscriberKeepsTheNewest(t *testing.T) {
 	h := New()
 	slow, cancel := h.Subscribe("3f2b8c1e-9a47-4d0b-8e65-1c7a2f9d4b10")
 	defer cancel()
@@ -74,22 +74,30 @@ func TestSlowSubscriberKeepsOnlyTheNewest(t *testing.T) {
 		t.Fatal("Publish blocked on a subscriber that does not read")
 	}
 
-	if got := receive(t, slow); got.Version != 100 {
-		t.Fatalf("received version %d, want the newest (100)", got.Version)
+	// The last Pending updates, oldest first.
+	for want := int64(100 - Pending + 1); want <= 100; want++ {
+		if got := receive(t, slow); got.Version != want {
+			t.Fatalf("received version %d, want %d", got.Version, want)
+		}
 	}
 	wantNothing(t, slow)
 }
 
-func TestNewestIsTheHighestVersion(t *testing.T) {
-	// Two changes can be published in the opposite order of their versions.
+func TestABurstKeepsWhoMadeEachChange(t *testing.T) {
+	// Three people mark at the same moment: each update keeps its own by.
 	h := New()
 	slow, cancel := h.Subscribe("3f2b8c1e-9a47-4d0b-8e65-1c7a2f9d4b10")
 	defer cancel()
 
-	h.Publish("3f2b8c1e-9a47-4d0b-8e65-1c7a2f9d4b10", Update{Version: 8, Kind: KindStatus})
-	h.Publish("3f2b8c1e-9a47-4d0b-8e65-1c7a2f9d4b10", Update{Version: 7, Kind: KindAbsences})
-	if got := receive(t, slow); got.Version != 8 || got.Kind != KindStatus {
-		t.Fatalf("received %+v, want version 8", got)
+	people := []string{"Zr4h1TqPwm", "Lc8k2Wn5Qa", "Mt3p9Xv7Bd"}
+	for i, p := range people {
+		h.Publish("3f2b8c1e-9a47-4d0b-8e65-1c7a2f9d4b10", Update{Version: int64(10 + i), Kind: KindAbsences, By: &p})
+	}
+	for i, p := range people {
+		got := receive(t, slow)
+		if got.Version != int64(10+i) || got.By == nil || *got.By != p {
+			t.Fatalf("update %d = %+v, want version %d by %s", i, got, 10+i, p)
+		}
 	}
 	wantNothing(t, slow)
 }

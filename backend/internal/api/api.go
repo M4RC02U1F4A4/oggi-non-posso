@@ -165,7 +165,9 @@ func (a *api) route(w http.ResponseWriter, r *http.Request) {
 	case isAPIPath(p):
 		// The mux would answer a path that is not in its clean form with a
 		// redirect and a line of HTML.
-		if path.Clean(p) != p {
+		// The mux would answer a HEAD on every GET route, the stream
+		// included; the contract lists no HEAD.
+		if path.Clean(p) != p || r.Method == http.MethodHead {
 			notFound(w)
 			return
 		}
