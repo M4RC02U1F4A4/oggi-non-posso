@@ -25,6 +25,10 @@ import (
 	"github.com/M4RC02U1F4A4/oggi-non-posso/backend/internal/store/sqlite"
 )
 
+// version is set at build time (-ldflags "-X main.version=..."); a plain
+// go build reports "dev".
+var version = "dev"
+
 const (
 	exitRuntime = 1
 	exitConfig  = 2
@@ -123,6 +127,7 @@ func run(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	serveErr := make(chan error, 1)
 	go func() { serveErr <- srv.Serve(ln) }()
 	log.Info("listening",
+		"version", version,
 		"address", ln.Addr().String(),
 		"static_dir", cfg.StaticDir,
 		"retention_days", cfg.RetentionDays,
