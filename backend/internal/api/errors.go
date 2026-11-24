@@ -61,13 +61,11 @@ func (a *api) fail(w http.ResponseWriter, r *http.Request, err error) {
 		writeError(w, ae.status, ae.code, ae.message)
 		return
 	}
-	// The pattern, not the path: the path holds the event id, and the id is
-	// what the share link is made of. Where a path does go to a log, it
-	// goes through redactPath.
+	// The name of the route, never the path: see routeName.
 	if errors.Is(err, context.Canceled) {
-		a.log.Debug("request abandoned by the client", "route", r.Pattern)
+		a.log.Debug("request abandoned by the client", "method", r.Method, "route", a.routeName(r))
 	} else {
-		a.log.Error("request failed", "route", r.Pattern, "error", err)
+		a.log.Error("request failed", "method", r.Method, "route", a.routeName(r), "error", err)
 	}
 	writeError(w, http.StatusInternalServerError, codeInternal, "internal error")
 }

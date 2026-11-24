@@ -61,14 +61,15 @@ type api struct {
 	joins           *ratelimit.Limiter // nil when rate limits are off
 	streams         *ratelimit.Gate    // bounds the open streams; always on
 	mux             *http.ServeMux     // the routes under /api
+	handler         http.Handler       // everything, behind the middleware
 }
 
 // New returns the handler of the service: the API under /api, the health
 // check, and the built frontend when there is one.
-func New(o Options) http.Handler { return newAPI(o, time.Now) }
+func New(o Options) http.Handler { return build(o, time.Now).handler }
 
-// newAPI is New with the clock of the rate limits given.
-func newAPI(o Options, now func() time.Time) http.Handler {
+// build makes the API of New, with the clock of the rate limits given.
+func build(o Options, now func() time.Time) *api {
 	a := &api{
 		store:           o.Store,
 		notifier:        o.Notifier,
@@ -108,14 +109,52 @@ func newAPI(o Options, now func() time.Time) http.Handler {
 	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) { notFound(w) })
 	a.mux = mux
 
-	return securityHeaders(a.recovered(http.HandlerFunc(a.route)))
+	a.handler = securityHeaders(a.recovered(http.HandlerFunc(a.route)))
+	return a
+}
+
+// isAPIPath reports whether a path belongs to the API.
+func isAPIPath(p string) bool { return p == "/api" || strings.HasPrefix(p, "/api/") }
+
+// The names requests are logged under when no pattern of the API matched.
+const (
+	routeHealth    = "healthz"
+	routeStatic    = "static"
+	routeUnmatched = "unmatched"
+)
+
+// routeName returns the name a request is logged under: the pattern of the
+// API route that served it ("PUT /api/events/{id}/absences") or a fixed
+// word for everything else.
+//
+// It is never the path, or a part of it. Both unique links are paths, and
+// both are capabilities: the event id opens the event to whoever has it,
+// the organiser key manages it. Neither may be in a log, so no log line of
+// this package carries a request path, a query or an id of an event.
+func (a *api) routeName(r *http.Request) string {
+	p := r.URL.Path
+	switch {
+	case isAPIPath(p):
+		// The mux leaves the pattern it matched on the request; "/" is its
+		// catch-all, and before the mux has run there is none.
+		if r.Pattern != "" && r.Pattern != "/" {
+			return r.Pattern
+		}
+		return routeUnmatched
+	case p == "/healthz":
+		return routeHealth
+	case a.staticDir != "":
+		return routeStatic
+	default:
+		return routeUnmatched
+	}
 }
 
 // route sends a request to the API, the health check or the frontend.
 func (a *api) route(w http.ResponseWriter, r *http.Request) {
 	p := r.URL.Path
 	switch {
-	case p == "/api" || strings.HasPrefix(p, "/api/"):
+	case isAPIPath(p):
 		// The mux would answer a path that is not in its clean form with a
 		// redirect and a line of HTML.
 		if path.Clean(p) != p {

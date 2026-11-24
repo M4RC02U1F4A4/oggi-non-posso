@@ -353,7 +353,9 @@ func (s *Store) DeleteExpired(ctx context.Context, lastDayBefore string) (int, e
 }
 
 // wrap adds what was being done to a database failure and leaves the
-// errors callers tell apart as they are.
+// errors callers tell apart as they are. What it adds never names an
+// event: errors end up in the log, and an event id is what the share link
+// is made of.
 func wrap(doing string, err error) error {
 	for _, known := range []error{
 		store.ErrNotFound, store.ErrNameTaken, store.ErrClosed,

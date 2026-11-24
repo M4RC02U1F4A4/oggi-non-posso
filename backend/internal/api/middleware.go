@@ -38,8 +38,9 @@ func securityHeaders(next http.Handler) http.Handler {
 	})
 }
 
-// recovered turns a panic in a handler into a logged 500. The path it logs
-// is redacted: see redactPath.
+// recovered turns a panic in a handler into a logged 500. What it logs of
+// the request is the method and the name of the route, never the path: see
+// routeName.
 func (a *api) recovered(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
@@ -53,7 +54,7 @@ func (a *api) recovered(next http.Handler) http.Handler {
 			}
 			a.log.Error("panic serving a request",
 				"method", r.Method,
-				"path", redactPath(r.URL.Path),
+				"route", a.routeName(r),
 				"panic", fmt.Sprint(v),
 				"stack", string(debug.Stack()),
 			)

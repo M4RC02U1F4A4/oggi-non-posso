@@ -59,6 +59,7 @@ func (r *recorder) last(t *testing.T) published {
 
 type harness struct {
 	t       *testing.T
+	api     *api
 	handler http.Handler
 	store   *sqlite.Store
 	notes   *recorder
@@ -101,7 +102,8 @@ func newHarness(t *testing.T, change ...func(*Options)) *harness {
 		f(&o)
 	}
 	c := &clock{t: time.Date(2026, 11, 24, 13, 5, 0, 0, time.UTC)}
-	return &harness{t: t, handler: newAPI(o, c.now), store: st, notes: notes, clock: c}
+	a := build(o, c.now)
+	return &harness{t: t, api: a, handler: a.handler, store: st, notes: notes, clock: c}
 }
 
 // The JSON of the contract, as a client reads it.
