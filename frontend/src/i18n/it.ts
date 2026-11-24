@@ -266,6 +266,7 @@ export const it = {
   'create.days.prev': 'Mese precedente',
   'create.days.next': 'Mese successivo',
   'create.days.past': '{day}: già passato',
+  'create.days.tooFar': '{day}: oltre un anno da oggi',
   'create.days.full': 'Al massimo {max} giorni: togline uno per aggiungerne un altro.',
   'create.slots.title': 'Fasce della giornata',
   'create.slots.hint': 'tocca per togliere quelle che non servono',

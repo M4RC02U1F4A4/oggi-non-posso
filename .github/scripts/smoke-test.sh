@@ -55,8 +55,10 @@ code=$(curl -s -o /dev/null -w '%{http_code}' "${base}/e/3f2b8c1e-9a47-4d0b-8e65
 [ "$code" = "200" ] || fail "an event route answered ${code}, want 200 (the app's page)"
 echo "event route: served"
 
+# A week from today: the API only takes dates up to a year ahead.
+day=$(date -u -d '+7 days' +%Y-%m-%d)
 created=$(curl -fsS -X POST "${base}/api/events" -H 'Content-Type: application/json' \
-  -d '{"title":"Cena di dicembre","organiser_name":"Giulia","days":[{"date":"2030-12-13","slots":["dinner"]}]}') \
+  -d "{\"title\":\"Cena di dicembre\",\"organiser_name\":\"Giulia\",\"days\":[{\"date\":\"${day}\",\"slots\":[\"dinner\"]}]}") \
   || fail "creating an event failed"
 case "$created" in
   *'"participant_token":"p_'*) echo "API: event created" ;;

@@ -135,6 +135,9 @@ func (a *api) createEvent(w http.ResponseWriter, r *http.Request) {
 		days = append(days, day)
 	}
 	days, err = domain.NormalizeDays(days)
+	if err == nil {
+		err = domain.CheckDateWindow(days, a.now())
+	}
 	if err != nil {
 		a.fail(w, r, validation(err, ""))
 		return

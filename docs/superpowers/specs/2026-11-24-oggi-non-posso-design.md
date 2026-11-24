@@ -233,6 +233,9 @@ Validation:
 - `name`, `organiser_name`: 1–30 characters after trimming.
 - `days`: 1–62 entries, distinct valid dates; each with 1–5 distinct slots
   from the closed set.
+- Dates of a new event: from the day before today to a year and a day after
+  it, both in UTC (the extra day on each side covers every time zone). The
+  creation page offers today to the same day next year.
 - `set` / `clear`: every pair must be a candidate of the event; a pair in
   both is `validation_failed`. Setting what is set and clearing what is
   clear are not errors.

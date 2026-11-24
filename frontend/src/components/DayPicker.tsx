@@ -7,8 +7,7 @@ import {
   monthMatrix,
   parseDate,
   toISODate,
-  weekdayShort,
-} from '../lib/dates'
+  weekdayShort, oneYearAfter } from '../lib/dates'
 import '../styles/DayPicker.css'
 
 interface DayPickerProps {
@@ -29,6 +28,9 @@ export function DayPicker({ selected, onToggle, today, max }: DayPickerProps) {
   const [month, setMonth] = useState({ y: start.y, m: start.m })
   const full = selected.length >= max
   const atFirstMonth = month.y === start.y && month.m === start.m
+  const last = oneYearAfter(today)
+  const end = parseDate(last)
+  const atLastMonth = month.y === end.y && month.m === end.m
   const title = formatMonthYear(month.y, month.m)
 
   return (
@@ -48,6 +50,7 @@ export function DayPicker({ selected, onToggle, today, max }: DayPickerProps) {
             type="button"
             className="picker__arrow picker__arrow--next"
             aria-label={t('create.days.next')}
+            disabled={atLastMonth}
             onClick={() => setMonth(addMonths(month.y, month.m, 1))}
           />
         </div>
@@ -66,13 +69,20 @@ export function DayPicker({ selected, onToggle, today, max }: DayPickerProps) {
             const date = toISODate(month.y, month.m, day)
             const picked = selected.includes(date)
             const past = date < today
+            const tooFar = date > last
             return (
               <button
                 type="button"
                 className={picked ? 'picker__day is-on' : 'picker__day'}
                 aria-pressed={picked}
-                aria-label={past ? t('create.days.past', { day: formatFull(date) }) : formatFull(date)}
-                disabled={past || (full && !picked)}
+                aria-label={
+                  past
+                    ? t('create.days.past', { day: formatFull(date) })
+                    : tooFar
+                      ? t('create.days.tooFar', { day: formatFull(date) })
+                      : formatFull(date)
+                }
+                disabled={past || tooFar || (full && !picked)}
                 onClick={() => onToggle(date)}
                 key={date}
               >

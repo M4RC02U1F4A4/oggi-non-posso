@@ -54,6 +54,30 @@ func ValidDate(s string) bool {
 	return err == nil && t.Format(layout) == s
 }
 
+// DateWindow is the range of candidate dates a new event may use, given the
+// current instant: from the day before today to a year and a day after it,
+// both counted in UTC. The extra day on each side lets every time zone pick
+// its own today and a year ahead. Without an upper bound an event could sit
+// far in the future and never reach its retention date.
+func DateWindow(now time.Time) (first, last string) {
+	const layout = "2006-01-02"
+	today := now.UTC()
+	return today.AddDate(0, 0, -1).Format(layout), today.AddDate(1, 0, 1).Format(layout)
+}
+
+// CheckDateWindow checks that every day of a new event falls inside the
+// DateWindow of now. Days must already be valid dates.
+func CheckDateWindow(days []Day, now time.Time) error {
+	first, last := DateWindow(now)
+	for _, d := range days {
+		// YYYY-MM-DD compares as text in calendar order.
+		if d.Date < first || d.Date > last {
+			return invalid("days", "%s is outside %s to %s", d.Date, first, last)
+		}
+	}
+	return nil
+}
+
 // NormalizeDays checks the candidate days of a new event (1 to 62 distinct
 // valid dates, each with 1 to 5 distinct slots of the closed set) and
 // returns them sorted by date, each with its slots in canonical order. The

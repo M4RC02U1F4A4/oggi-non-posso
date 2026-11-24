@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 )
 
 func wantValidationError(t *testing.T, err error, field string) {
@@ -138,5 +139,24 @@ func TestEventCandidatesAndUnion(t *testing.T) {
 	want := []Slot{Lunch, Afternoon, Dinner}
 	if got := e.UnionSlots(); !reflect.DeepEqual(got, want) {
 		t.Errorf("UnionSlots = %v, want %v", got, want)
+	}
+}
+
+func TestDateWindow(t *testing.T) {
+	// 23:30 in UTC is already the next day in Italy, and 14 h ahead of UTC
+	// is two calendar days later than 10 h behind it: the window takes both.
+	now := time.Date(2026, 11, 24, 23, 30, 0, 0, time.UTC)
+	first, last := DateWindow(now)
+	if first != "2026-11-23" || last != "2027-11-25" {
+		t.Fatalf("DateWindow = %s, %s; want 2026-11-23, 2027-11-25", first, last)
+	}
+	ok := []Day{{Date: "2026-11-23"}, {Date: "2026-11-25"}, {Date: "2027-11-25"}}
+	if err := CheckDateWindow(ok, now); err != nil {
+		t.Fatalf("days inside the window refused: %v", err)
+	}
+	for _, d := range []string{"2026-11-22", "2027-11-26", "9999-12-31", "0001-01-01"} {
+		if err := CheckDateWindow([]Day{{Date: d}}, now); err == nil {
+			t.Errorf("%s accepted, want refused", d)
+		}
 	}
 }

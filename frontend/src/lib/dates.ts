@@ -66,6 +66,15 @@ export function todayISO(now: Date = new Date()): string {
   return toISODate(now.getFullYear(), now.getMonth() + 1, now.getDate())
 }
 
+/**
+ * The same day one year later, 28 February for 29 February. The last day an
+ * event may use: the server takes dates up to a year ahead.
+ */
+export function oneYearAfter(date: string): string {
+  const { y, m, d } = parseDate(date)
+  return toISODate(y + 1, m, Math.min(d, daysInMonth(y + 1, m)))
+}
+
 export function addMonths(y: number, m: number, delta: number): { y: number; m: number } {
   const index = y * 12 + (m - 1) + delta
   return { y: Math.floor(index / 12), m: (((index % 12) + 12) % 12) + 1 }

@@ -9,8 +9,7 @@ import {
   monthMatrix,
   parseDate,
   spansMonths,
-  todayISO,
-} from './dates'
+  todayISO, oneYearAfter } from './dates'
 
 afterEach(() => {
   vi.unstubAllEnvs()
@@ -84,5 +83,13 @@ describe('month arithmetic', () => {
   it('tells when days fall in more than one month', () => {
     expect(spansMonths(['2026-12-11', '2026-12-20'])).toBe(false)
     expect(spansMonths(['2026-12-30', '2027-01-02'])).toBe(true)
+  })
+})
+
+describe('oneYearAfter', () => {
+  it('is the same day a year later, 28 February for 29 February', () => {
+    expect(oneYearAfter('2026-11-24')).toBe('2027-11-24')
+    expect(oneYearAfter('2028-02-29')).toBe('2029-02-28')
+    expect(oneYearAfter('2026-12-31')).toBe('2027-12-31')
   })
 })

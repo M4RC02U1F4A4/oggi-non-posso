@@ -432,6 +432,10 @@ func TestCreateEventValidation(t *testing.T) {
 		{"no slots", "days", func(b map[string]any) { b["days"] = []map[string]any{day("2026-12-11")} }},
 		{"unknown slot", "days", func(b map[string]any) { b["days"] = []map[string]any{day("2026-12-11", "brunch")} }},
 		{"repeated slot", "days", func(b map[string]any) { b["days"] = []map[string]any{day("2026-12-11", "dinner", "dinner")} }},
+		// The harness clock is 2026-11-24: the window runs 2026-11-23 to 2027-11-25.
+		{"date in the past", "days", func(b map[string]any) { b["days"] = []map[string]any{day("2026-11-22", "dinner")} }},
+		{"date too far ahead", "days", func(b map[string]any) { b["days"] = []map[string]any{day("2027-11-26", "dinner")} }},
+		{"date far in the future", "days", func(b map[string]any) { b["days"] = []map[string]any{day("9999-12-31", "dinner")} }},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

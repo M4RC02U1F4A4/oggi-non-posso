@@ -52,6 +52,8 @@ type Options struct {
 }
 
 type api struct {
+	// now is the clock of the rate limits and of the window of dates.
+	now             func() time.Time
 	store           store.Store
 	notifier        Notifier
 	maxParticipants int
@@ -75,6 +77,7 @@ func New(o Options) http.Handler { return build(o, time.Now).handler }
 // build makes the API of New, with the clock of the rate limits given.
 func build(o Options, now func() time.Time) *api {
 	a := &api{
+		now:             now,
 		store:           o.Store,
 		notifier:        o.Notifier,
 		maxParticipants: o.MaxParticipants,
