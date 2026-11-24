@@ -1,0 +1,13 @@
+# Local working files: notes, anything personal. Never committed.
+/local/
+
+# Local data and builds
+*.db
+*.db-wal
+*.db-shm
+/bin/
+.env
+
+# Frontend
+node_modules/
+/frontend/dist/
