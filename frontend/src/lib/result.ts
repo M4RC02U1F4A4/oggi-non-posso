@@ -18,7 +18,7 @@ export interface ResultSummary {
   free: ResultGroup[]
   /** The groups with someone missing: the next best tier. */
   rest: ResultGroup[]
-  /** "Se ne manca uno solo", "Se ne mancano due"; null without such groups. */
+  /** "Se manca una persona sola", "Se mancano due persone"; null without such groups. */
   restHeading: string | null
 }
 

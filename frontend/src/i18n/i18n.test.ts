@@ -15,12 +15,12 @@ describe('t', () => {
     expect(t('people.slots', { count: 0 })).toBe('nessuna fascia')
     expect(t('people.slots', { count: 1 })).toBe('1 fascia')
     expect(t('people.slots', { count: 7 })).toBe('7 fasce')
-    expect(t('people.title', { count: 1 })).toBe('Ha segnato una persona')
-    expect(t('people.title', { count: 5 })).toBe('Hanno segnato in 5')
+    expect(t('people.title', { count: 1 })).toBe('Ha risposto una persona')
+    expect(t('people.title', { count: 5 })).toBe('Hanno risposto in 5')
   })
 
   it('uses the other form for zero when there is no zero form', () => {
-    expect(t('people.title', { count: 0 })).toBe('Hanno segnato in 0')
+    expect(t('people.title', { count: 0 })).toBe('Hanno risposto in 0')
   })
 
   it('throws on a missing variable', () => {

@@ -68,6 +68,9 @@ describe('the share link', () => {
     expect(address()).toBe(EVENT_PATH)
     expect(screen.queryByText(INVALID)).toBeNull()
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Rimpatriata di dicembre')
+    // Everyone who joined has answered, marks or not.
+    expect(document.body.textContent).toContain('Giulia cerca una data. Hanno già risposto in 5.')
+    expect(screen.getByText('ci siete tutti, per ora')).toBeDefined()
   })
 
   it.each(['k7Qm2xVd9LpA', 'anything', ORGANISER_KEY.toUpperCase(), `${EVENT_ID}0`])(
@@ -192,6 +195,7 @@ describe('where the focus goes', () => {
     act(() => FakeEventSource.latest().emit({ version: 41, kind: 'status', by: null }))
     await settle()
     expect(heading().textContent).toBe('Ci siete tutti in tre momenti')
+    expect(document.body.textContent).toContain('Giulia ha chiuso. Hanno risposto in 5: Giulia, Luca, Anna, Marta, Paolo.')
     expect(document.activeElement).toBe(heading())
 
     getEvent.mockResolvedValue(fixtureEvent('Anna', { version: 42 }))

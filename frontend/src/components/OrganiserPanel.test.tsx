@@ -17,6 +17,11 @@ describe('OrganiserPanel', () => {
     const onClose = vi.fn().mockResolvedValue(undefined)
     render(<OrganiserPanel event={fixtureEvent('Giulia', { can_manage: true })} onClose={onClose} onReopen={vi.fn()} />)
 
+    expect(
+      screen.getByText(
+        'Dopo la chiusura nessuno può più segnare e tutti vedono le alternative. La votazione si può sempre riaprire.',
+      ),
+    ).toBeDefined()
     fireEvent.click(screen.getByRole('button', { name: 'Chiudi la votazione' }))
     expect(onClose).not.toHaveBeenCalled()
     expect(screen.getByText('Chiudere la votazione adesso?')).toBeDefined()

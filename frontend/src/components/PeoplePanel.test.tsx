@@ -9,7 +9,7 @@ const nobody = new Set<string>()
 describe('PeoplePanel', () => {
   it('lists who is in, with their slots and who is marking', () => {
     render(<PeoplePanel event={fixtureEvent('Anna')} marking={new Set([idOf('Paolo'), idOf('Anna')])} saveState="saved" />)
-    expect(screen.getByRole('heading').textContent).toBe('Hanno segnato in 5')
+    expect(screen.getByRole('heading').textContent).toBe('Hanno risposto in 5')
     const rows = screen.getAllByRole('listitem').map((row) => row.textContent)
     expect(rows).toEqual([
       'Giuliaorganizza7 fasce',

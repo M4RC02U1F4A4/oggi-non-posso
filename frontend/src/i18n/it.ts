@@ -116,7 +116,7 @@ export const it = {
   'error.not_found': 'Questo evento non c’è più.',
   'error.event_closed': 'La votazione è chiusa.',
   'error.name_taken': 'C’è già qualcuno con questo nome. Scrivine uno diverso, magari con l’iniziale del cognome.',
-  'error.too_many_participants': 'In questo evento non c’è più posto: troppe persone hanno già segnato.',
+  'error.too_many_participants': 'In questo evento non c’è più posto: troppe persone hanno già risposto.',
   'error.cannot_remove_organiser': 'Chi organizza non si può togliere.',
   'error.payload_too_large': 'Troppa roba in una volta sola. Togli qualche giorno e riprova.',
   'error.validation_failed': 'C’è qualcosa che non va in quello che hai scritto. Controlla e riprova.',
@@ -139,10 +139,11 @@ export const it = {
   'event.organiserLinkInvalid': 'Questo link per organizzare non vale per questo evento.',
   'event.removed': 'Chi organizza ha tolto il tuo nome: per segnare di nuovo, scrivilo ancora.',
 
-  'people.title': { one: 'Ha segnato una persona', other: 'Hanno segnato in {count}' },
-  'people.countAlone': { one: 'Ha segnato una persona.', other: 'Hanno segnato in {count}.' },
-  'people.countAnd': { one: 'Ha segnato una persona,', other: 'Hanno segnato in {count},' },
-  'people.already': { one: 'Ha già segnato una persona.', other: 'Hanno già segnato in {count}.' },
+  // Everyone who joined has answered, whether they marked anything or not.
+  'people.title': { one: 'Ha risposto una persona', other: 'Hanno risposto in {count}' },
+  'people.countAlone': { one: 'Ha risposto una persona.', other: 'Hanno risposto in {count}.' },
+  'people.countAnd': { one: 'Ha risposto una persona,', other: 'Hanno risposto in {count},' },
+  'people.already': { one: 'Ha già risposto una persona.', other: 'Hanno già risposto in {count}.' },
   'people.you': 'tu',
   'people.organiser': 'organizza',
   'people.youOrganiser': 'tu, organizzi',
@@ -159,7 +160,7 @@ export const it = {
 
   'table.label': 'Giorni e fasce',
   'table.day': 'Giorno',
-  'table.more': { one: 'e 1 in più', other: 'e altri {count}' },
+  'table.more': '+{count}',
   'cell.mine': 'Non posso',
   'cell.aria.off': '{day}, {slot}: non in programma',
   'cell.aria.mine': '{day}, {slot}: non puoi',
@@ -172,14 +173,14 @@ export const it = {
     one: '{day}, {slot}: puoi. Non può {names}',
     other: '{day}, {slot}: puoi. Non possono {names}',
   },
-  'cell.aria.readFree': '{day}, {slot}: liberi tutti',
+  'cell.aria.readFree': '{day}, {slot}: ci siete tutti',
   'cell.aria.readMissing': {
     one: '{day}, {slot}: non può {names}',
     other: '{day}, {slot}: non possono {names}',
   },
   'day.aria.markAll': '{day}: segna tutto il giorno',
   'day.aria.clearAll': '{day}: togli tutto il giorno',
-  'peek.free': 'Liberi tutti',
+  'peek.free': 'Ci siete tutti',
   'peek.onlyYou': 'Non puoi solo tu',
   'peek.missing': { one: 'Non può {names}', other: 'Non possono {names}' },
 
@@ -188,7 +189,7 @@ export const it = {
   'legend.others.dark': 'non può qualcun altro, più chiaro se sono in tanti',
   'legend.othersRead.light': 'qualcuno non può, più scuro se sono in tanti',
   'legend.othersRead.dark': 'qualcuno non può, più chiaro se sono in tanti',
-  'legend.free': 'liberi tutti, per ora',
+  'legend.free': 'ci siete tutti, per ora',
   'note.mark.light':
     'Nero: non puoi tu. Il numero è quanti altri non possono, tienilo premuto per vedere chi. Tocca il giorno per segnarlo tutto.',
   'note.mark.dark':
@@ -206,7 +207,7 @@ export const it = {
   'join.placeholder': 'Il tuo nome',
   'join.submit': 'Entra e segna quando non puoi',
   'join.empty': 'Scrivi il tuo nome.',
-  'join.tooLong': 'Il nome è troppo lungo: al massimo 30 caratteri.',
+  'join.tooLong': 'Il nome è troppo lungo: al massimo {max} caratteri.',
 
   'share.prompt': 'Manca qualcuno? Mandagli il link',
   'share.copy': 'Copia il link',
@@ -218,7 +219,7 @@ export const it = {
   'organiser.label': 'Per chi organizza',
   'organiser.close': 'Chiudi la votazione',
   'organiser.closeHelp':
-    'Dopo la chiusura nessuno può più segnare e tutti vedono le alternative. Puoi sempre riaprirla.',
+    'Dopo la chiusura nessuno può più segnare e tutti vedono le alternative. La votazione si può sempre riaprire.',
   'organiser.closeConfirm': 'Chiudere la votazione adesso?',
   'organiser.closeYes': 'Sì, chiudi',
   'organiser.reopen': 'Riapri la votazione',
@@ -233,8 +234,8 @@ export const it = {
   // The closed event.
   'result.status': 'Votazione chiusa',
   'result.closedBy': '{name} ha chiuso.',
-  'result.people': { one: 'Ha segnato una persona: {names}.', other: 'Hanno segnato in {count}: {names}.' },
-  'result.peopleMany': 'Hanno segnato in {count}.',
+  'result.people': { one: 'Ha risposto una persona: {names}.', other: 'Hanno risposto in {count}: {names}.' },
+  'result.peopleMany': 'Hanno risposto in {count}.',
   'result.headline': {
     zero: 'Non c’è un momento per tutti',
     one: 'Ci siete tutti in un momento',
@@ -242,7 +243,7 @@ export const it = {
   },
   'result.free.title': 'Ci siete tutti',
   'result.free.badge': '{count} su {total}',
-  'result.tier.title': { one: 'Se ne manca uno solo', other: 'Se ne mancano {word}' },
+  'result.tier.title': { one: 'Se manca una persona sola', other: 'Se mancano {word} persone' },
   'result.without': 'senza {names}',
   'result.calendar.title': 'Tutto il calendario',
   'result.calendar.noteHover': 'Il numero è quante persone mancano. Passa sopra una casella per vedere chi.',
@@ -287,9 +288,9 @@ export const it = {
   'create.submit': 'Crea e prendi il link',
   'create.submitting': 'Creo l’evento…',
   'create.error.title': 'Scrivi cosa organizzi.',
-  'create.error.titleLong': 'Troppo lungo: al massimo 80 caratteri.',
+  'create.error.titleLong': 'Troppo lungo: al massimo {max} caratteri.',
   'create.error.name': 'Scrivi come ti chiami.',
-  'create.error.nameLong': 'Troppo lungo: al massimo 30 caratteri.',
+  'create.error.nameLong': 'Troppo lungo: al massimo {max} caratteri.',
   'create.error.days': 'Scegli almeno un giorno dal calendario.',
 
   // Right after creating.

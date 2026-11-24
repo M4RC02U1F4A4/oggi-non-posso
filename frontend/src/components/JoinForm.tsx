@@ -22,7 +22,7 @@ export function JoinForm({ onJoin }: JoinFormProps) {
     if (busy) return
     const trimmed = name.trim()
     if (trimmed === '') return setError(t('join.empty'))
-    if (countCharacters(trimmed) > MAX_NAME_LENGTH) return setError(t('join.tooLong'))
+    if (countCharacters(trimmed) > MAX_NAME_LENGTH) return setError(t('join.tooLong', { max: MAX_NAME_LENGTH }))
     setError(null)
     setBusy(true)
     try {

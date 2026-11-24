@@ -142,7 +142,7 @@ function CreateForm({ onCreated }: { onCreated: (created: Created) => void }) {
               />
               {errors.title && (
                 <p className="field-error" id={titleErrorId} role="alert">
-                  {t(errors.title)}
+                  {t(errors.title, { max: MAX_TITLE_LENGTH })}
                 </p>
               )}
             </div>
@@ -166,7 +166,7 @@ function CreateForm({ onCreated }: { onCreated: (created: Created) => void }) {
               />
               {errors.name && (
                 <p className="field-error" id={nameErrorId} role="alert">
-                  {t(errors.name)}
+                  {t(errors.name, { max: MAX_NAME_LENGTH })}
                 </p>
               )}
             </div>

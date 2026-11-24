@@ -22,6 +22,12 @@ describe('VoteTable, marking', () => {
     expect([...(names?.querySelectorAll('bdi') ?? [])].map((name) => name.textContent)).toEqual(['Marta', 'Paolo'])
   })
 
+  it('writes two names and how many more in a crowded cell', () => {
+    render(<VoteTable event={fixtureEvent('Giulia')} mode="mark" onToggle={vi.fn()} />)
+    const names = screen.getByRole('button', { name: /^venerdì 18, pomeriggio/ }).querySelector('.vt__names')
+    expect(names?.textContent).toBe('Luca, Anna +2')
+  })
+
   it('toggles one pair on a cell and the whole day on its header', () => {
     const onToggle = vi.fn()
     render(<VoteTable event={fixtureEvent('Anna')} mode="mark" onToggle={onToggle} />)
@@ -164,6 +170,7 @@ describe('VoteTable, looking only', () => {
     expect(screen.queryByRole('button', { name: /segna tutto il giorno/ })).toBeNull()
     expect(screen.queryByRole('button', { name: /: puoi/ })).toBeNull()
 
+    expect(screen.getByText('venerdì 11, dopocena: ci siete tutti')).toBeDefined()
     const cell = screen.getByRole('button', { name: 'sabato 12, mattina: non possono Anna e Paolo' })
     fireEvent.click(cell)
     expect(screen.getByRole('status').textContent).toBe('Non possono Anna e Paolo')

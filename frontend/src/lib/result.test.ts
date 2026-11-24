@@ -14,7 +14,7 @@ describe('summarise', () => {
       '2026-12-12 pomeriggio e cena',
       '2026-12-20 pranzo e pomeriggio',
     ])
-    expect(summary.restHeading).toBe('Se ne manca uno solo')
+    expect(summary.restHeading).toBe('Se manca una persona sola')
     expect(summary.rest).toHaveLength(7)
     expect(summary.rest[0]).toMatchObject({ date: '2026-12-11', slots: ['dinner'] })
     expect(summary.rest.map((g) => g.missing.map((p) => p.name).join())).toEqual([
@@ -44,7 +44,7 @@ describe('summarise', () => {
     )
     expect(summary.headline).toBe('Non c’è un momento per tutti')
     expect(summary.free).toEqual([])
-    expect(summary.restHeading).toBe('Se ne manca uno solo')
+    expect(summary.restHeading).toBe('Se manca una persona sola')
   })
 
   it('names the best tier when more than one is missing everywhere', () => {
@@ -52,7 +52,7 @@ describe('summarise', () => {
       closedWith([{ date: '2026-12-13', slots: ['dinner'], missing: [idOf('Paolo'), idOf('Marta')] }]),
     )
     expect(summary.headline).toBe('Non c’è un momento per tutti')
-    expect(summary.restHeading).toBe('Se ne mancano due')
+    expect(summary.restHeading).toBe('Se mancano due persone')
     expect(summary.rest[0]?.missing.map((p) => p.name)).toEqual(['Paolo', 'Marta'])
   })
 

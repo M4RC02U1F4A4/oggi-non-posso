@@ -13,7 +13,7 @@ describe('ResultView', () => {
     expect(missing?.querySelector('bdi')?.textContent).toBe('Luca')
     expect(screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)).toEqual([
       'Ci siete tutti',
-      'Se ne manca uno solo',
+      'Se manca una persona sola',
       'Tutto il calendario',
     ])
   })
