@@ -7,9 +7,13 @@ export function App() {
   return (
     <Routes>
       <Route path="/" element={<CreatePage />} />
-      {/* The organiser link is the same page: it reads the key and moves to /e/:id. */}
+      {/*
+        The organiser link is the same page: it reads the key and moves to
+        /e/:id. Whatever follows the key goes with it, so the key never stays
+        in the address.
+      */}
       <Route path="/e/:id" element={<EventPage />}>
-        <Route path="o/:key" element={null} />
+        <Route path="o/:key/*" element={null} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

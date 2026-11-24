@@ -160,6 +160,15 @@ describe('the organiser link', () => {
     expect(address()).toBe(EVENT_PATH)
   })
 
+  it('takes the key out of the address when something follows it', async () => {
+    getEvent.mockResolvedValue(fixtureEvent(null, { can_manage: true }))
+    await open(`${EVENT_PATH}/o/${ORGANISER_KEY}/anything/else`)
+
+    expect(address()).toBe(EVENT_PATH)
+    expect(getEvent).toHaveBeenCalledExactlyOnceWith(EVENT_ID, { organiser: ORGANISER_KEY })
+    expect(credentials.load(EVENT_ID)).toEqual({ organiser: ORGANISER_KEY })
+  })
+
   it('cleans the address even when the id is not one, and asks nothing', async () => {
     await open(`/e/anything/o/${ORGANISER_KEY}`)
     expect(address()).toBe('/e/anything')

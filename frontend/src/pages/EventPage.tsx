@@ -28,15 +28,15 @@ interface OrganiserLink {
 
 /**
  * The page of an event, at `/e/<id>` and at the organiser link
- * `/e/<id>/o/<key>`. The key of an organiser link is only a candidate (anyone
- * can write such an address): it is checked with the server before it is
- * stored. The address is replaced with `/e/<id>` at once, whatever the key
+ * `/e/<id>/o/<key>` (whatever follows the key too). The key of an organiser
+ * link is only a candidate (anyone can write such an address): it is
+ * checked with the server before it is stored. The address is replaced with `/e/<id>` at once, whatever the key
  * turns out to be, so that it stays neither in the address bar nor in the
  * history, and copying the address never hands out the organiser's rights.
  */
 export function EventPage() {
   const { id = '' } = useParams()
-  const organiserMatch = useMatch('/e/:id/o/:key')
+  const organiserMatch = useMatch('/e/:id/o/:key/*')
   const navigate = useNavigate()
   const linkKey = organiserMatch?.params.key
 
