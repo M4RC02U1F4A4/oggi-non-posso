@@ -26,7 +26,7 @@ export function Band({ title, eyebrow, status, wide, narrow }: BandProps) {
             {t('app.name')}
           </Link>
           {eyebrow && <p className="band__eyebrow">{eyebrow}</p>}
-          <h1 className="band__title">{title}</h1>
+          {title !== undefined ? <h1 className="band__title">{title}</h1> : <div className="band__title" />}
           {narrow && <p className="band__text only-narrow">{narrow}</p>}
         </div>
         {(status || wide) && (

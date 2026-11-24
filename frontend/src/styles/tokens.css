@@ -13,7 +13,8 @@
   --bg: #ffffff;
   --text: #000000;
   --mute: #5e5e5a;
-  --placeholder: #8a8a85;
+  /* Darker than the mockups' #8a8a85, which is too faint to read on white. */
+  --placeholder: #6e6e69;
   --off: #a5a5a0;
   --disabled: #b4b4ae;
 

@@ -26,12 +26,13 @@ export function JoinForm({ onJoin }: JoinFormProps) {
     setError(null)
     setBusy(true)
     try {
+      // On success the form goes away with the visitor it was for.
       await onJoin(trimmed)
     } catch (err) {
       setError(t(`error.${errorCode(err)}`))
+    } finally {
       setBusy(false)
     }
-    // On success the form goes away with the visitor it was for.
   }
 
   return (
