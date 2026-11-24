@@ -26,7 +26,7 @@ The API contract, the domain rules and the look are described in
 
 ## Run it for development
 
-You need Go 1.26 and Node 22.
+You need Go 1.27 and Node 26.
 
 ```sh
 # Terminal 1: the API on :8080, database in the current directory

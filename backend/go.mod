@@ -1,6 +1,6 @@
 module github.com/M4RC02U1F4A4/oggi-non-posso/backend
 
-go 1.26.0
+go 1.27.0
 
 require (
 	golang.org/x/text v0.44.0
