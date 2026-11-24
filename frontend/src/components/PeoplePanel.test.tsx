@@ -19,6 +19,13 @@ describe('PeoplePanel', () => {
       'Paolosta segnando',
     ])
     expect(screen.queryByRole('button')).toBeNull()
+    expect([...document.querySelectorAll('.people__who bdi')].map((name) => name.textContent)).toEqual([
+      'Giulia',
+      'Luca',
+      'Anna',
+      'Marta',
+      'Paolo',
+    ])
   })
 
   it('tells the caller while their marks are on the way, and when they did not arrive', () => {
@@ -37,7 +44,10 @@ describe('PeoplePanel', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Togli Luca' }))
     expect(onRemove).not.toHaveBeenCalled()
-    expect(screen.getByText('Togliere Luca? Spariscono anche le sue fasce.')).toBeDefined()
+    const question = screen.getByRole('group', { name: 'Togli Luca' }).querySelector('p')
+    expect(question?.textContent).toBe('Togliere Luca? Spariscono anche le sue fasce.')
+    // The name is kept apart from the words around it, whatever its direction.
+    expect(question?.querySelector('bdi')?.textContent).toBe('Luca')
 
     fireEvent.click(screen.getByRole('button', { name: 'Annulla' }))
     expect(onRemove).not.toHaveBeenCalled()

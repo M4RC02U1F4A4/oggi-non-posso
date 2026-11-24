@@ -6,7 +6,7 @@ import { CopyButton } from '../components/CopyButton'
 import { DayPicker } from '../components/DayPicker'
 import { SlotPicker } from '../components/SlotPicker'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
-import { t, type MessageKey } from '../i18n'
+import { isolate, t, tNodes, type MessageKey } from '../i18n'
 import * as credentials from '../lib/credentials'
 import { todayISO } from '../lib/dates'
 import { EMPTY_DRAFT, toEventDays, toggleDay, toggleDaySlot, toggleEventSlot } from '../lib/draft'
@@ -280,7 +280,7 @@ function CreatedView({ created, organiserKey }: { created: Created; organiserKey
           </section>
         </div>
         <div className="created__next">
-          <p className="only-wide">{t('created.next.text', { name })}</p>
+          <p className="only-wide">{tNodes('created.next.text', { name: isolate(name) })}</p>
           <Link className="btn created__open" to={`/e/${event.id}`}>
             {t('created.next.open')}
           </Link>

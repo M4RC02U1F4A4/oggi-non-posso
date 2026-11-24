@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react'
 import type { EventData, Pair, Participant } from '../api/types'
-import { joinList, t, type MessageKey } from '../i18n'
+import { isolate, joinList, joinNodes, listNodes, t, tNodes, type MessageKey } from '../i18n'
 import { formatDayLong, monthLong, parseDate, spansMonths, spansYears, weekdayLong, weekdayShort } from '../lib/dates'
 import { cellsOf, dayPairs, type Cell } from '../lib/grid'
 import '../styles/VoteTable.css'
@@ -33,10 +33,19 @@ function names(people: Participant[]): string {
 }
 
 /** The names a cell has room for: all of them up to three, then two and a count. */
-function shortNames(people: Participant[]): string {
-  if (people.length <= MAX_NAMES) return people.map((p) => p.name).join(t('list.separator'))
-  const shown = people.slice(0, MAX_NAMES - 1).map((p) => p.name)
-  return `${shown.join(t('list.separator'))} ${t('table.more', { count: people.length - shown.length })}`
+function shortNames(people: Participant[]): ReactNode {
+  if (people.length <= MAX_NAMES) return listNodes(people.map((p) => isolate(p.name)))
+  const shown = people.slice(0, MAX_NAMES - 1).map((p) => isolate(p.name))
+  return (
+    <>
+      {listNodes(shown)} {t('table.more', { count: people.length - shown.length })}
+    </>
+  )
+}
+
+/** "Non possono Marta e Paolo", with each name kept apart. */
+function missingNodes(people: Participant[]): ReactNode {
+  return tNodes('peek.missing', { count: people.length, names: joinNodes(people.map((p) => isolate(p.name))) })
 }
 
 function levelClass(count: number): string {
@@ -235,6 +244,7 @@ export function VoteTable({ event, mode, variant = 'full', onToggle, id }: VoteT
 
                 let label: string
                 let peekText: string
+                let peekContent: ReactNode
                 if (marking) {
                   const base: MessageKey = mine ? 'cell.aria.mine' : 'cell.aria.free'
                   label =
@@ -245,12 +255,14 @@ export function VoteTable({ event, mode, variant = 'full', onToggle, id }: VoteT
                     count > 0
                       ? t('peek.missing', { count, names: names(others) })
                       : t(mine ? 'peek.onlyYou' : 'peek.free')
+                  peekContent = count > 0 ? missingNodes(others) : peekText
                 } else {
                   label =
                     count === 0
                       ? t('cell.aria.readFree', vars)
                       : t('cell.aria.readMissing', { ...vars, count, names: names(others) })
                   peekText = count > 0 ? t('peek.missing', { count, names: names(others) }) : t('peek.free')
+                  peekContent = count > 0 ? missingNodes(others) : peekText
                 }
 
                 const content = (
@@ -269,7 +281,7 @@ export function VoteTable({ event, mode, variant = 'full', onToggle, id }: VoteT
 
                 const popover = peek === key && (
                   <div className="vt__peek" role="status">
-                    {peekText}
+                    {peekContent}
                   </div>
                 )
 

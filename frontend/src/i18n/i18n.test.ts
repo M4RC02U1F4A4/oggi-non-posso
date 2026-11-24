@@ -1,5 +1,6 @@
+import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { joinList, numberWord, t } from './index'
+import { isolate, joinList, joinNodes, listNodes, numberWord, t, tNodes } from './index'
 
 describe('t', () => {
   it('returns the text of a key', () => {
@@ -46,5 +47,28 @@ describe('numberWord', () => {
     expect(numberWord(3)).toBe('tre')
     expect(numberWord(10)).toBe('dieci')
     expect(numberWord(11)).toBe('11')
+  })
+})
+
+describe('tNodes', () => {
+  const html = (node: Parameters<typeof renderToStaticMarkup>[0]) => renderToStaticMarkup(node)
+
+  it('fills in elements, and chooses the plural form by count', () => {
+    expect(html(tNodes('bar.closedBy', { name: isolate('Giulia') }))).toBe('chiusa da <bdi>Giulia</bdi>')
+    expect(html(tNodes('peek.missing', { count: 2, names: joinNodes(['Luca', 'Marta'].map(isolate)) }))).toBe(
+      'Non possono <bdi>Luca</bdi> e <bdi>Marta</bdi>',
+    )
+  })
+
+  it('joins names as joinList does', () => {
+    expect(html(joinNodes(['Luca', 'Marta', 'Paolo'].map(isolate)))).toBe(
+      '<bdi>Luca</bdi>, <bdi>Marta</bdi> e <bdi>Paolo</bdi>',
+    )
+    expect(html(joinNodes([isolate('Luca')]))).toBe('<bdi>Luca</bdi>')
+    expect(html(listNodes(['Luca', 'Marta'].map(isolate)))).toBe('<bdi>Luca</bdi>, <bdi>Marta</bdi>')
+  })
+
+  it('throws on a missing variable', () => {
+    expect(() => tNodes('bar.closedBy', {})).toThrow(/name/)
   })
 })

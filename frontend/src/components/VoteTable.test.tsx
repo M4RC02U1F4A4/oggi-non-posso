@@ -15,6 +15,13 @@ describe('VoteTable, marking', () => {
     expect(screen.getByText('venerdì 11, mattina: non in programma')).toBeDefined()
   })
 
+  it('writes the names in the cells, each kept apart from the others', () => {
+    render(<VoteTable event={fixtureEvent('Anna')} mode="mark" onToggle={vi.fn()} />)
+    const names = screen.getByRole('button', { name: /^domenica 13, cena/ }).querySelector('.vt__names')
+    expect(names?.textContent).toBe('Marta, Paolo')
+    expect([...(names?.querySelectorAll('bdi') ?? [])].map((name) => name.textContent)).toEqual(['Marta', 'Paolo'])
+  })
+
   it('toggles one pair on a cell and the whole day on its header', () => {
     const onToggle = vi.fn()
     render(<VoteTable event={fixtureEvent('Anna')} mode="mark" onToggle={onToggle} />)
@@ -45,6 +52,10 @@ describe('VoteTable, marking', () => {
       fireEvent.click(cell)
 
       expect(screen.getByRole('status').textContent).toBe('Non possono Marta e Paolo')
+      expect([...screen.getByRole('status').querySelectorAll('bdi')].map((name) => name.textContent)).toEqual([
+        'Marta',
+        'Paolo',
+      ])
       expect(onToggle).not.toHaveBeenCalled()
     } finally {
       vi.useRealTimers()

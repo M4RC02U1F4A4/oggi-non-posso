@@ -110,7 +110,7 @@ describe('creating an event', () => {
     // The organiser link is copied whole and shown with its middle left out.
     expect(document.body.textContent).not.toContain(KEY)
     expect(document.body.textContent).toContain('/e/11111111…eeee')
-    expect(screen.getByText(/ti riconosce già come Giulia/)).toBeDefined()
+    expect(document.body.textContent).toMatch(/ti riconosce già come Giulia/)
     expect(screen.getByRole('link', { name: 'Apri l’evento e segna le tue' }).getAttribute('href')).toBe(`/e/${ID}`)
   })
 
@@ -166,7 +166,7 @@ describe('after creating', () => {
     open(entry)
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Fatto. Ora manda il link')
     expect(screen.getByText('Rimpatriata di dicembre')).toBeDefined()
-    expect(screen.getByText(/ti riconosce già come Giulia/)).toBeDefined()
+    expect(document.body.textContent).toMatch(/ti riconosce già come Giulia/)
     fireEvent.click(screen.getByRole('button', { name: 'Copia il link per organizzare' }))
     await waitFor(() => expect(writeText).toHaveBeenLastCalledWith(`${window.location.origin}/e/${ID}/o/${KEY}`))
   })

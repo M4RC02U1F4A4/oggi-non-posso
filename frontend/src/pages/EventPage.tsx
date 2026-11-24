@@ -11,7 +11,7 @@ import { ShareBox } from '../components/ShareBox'
 import { VoteTable } from '../components/VoteTable'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useEvent, type UseEvent } from '../hooks/useEvent'
-import { joinList, t } from '../i18n'
+import { isolate, joinNodes, listNodes, t, tNodes } from '../i18n'
 import { countMarked, findParticipant, organiserOf } from '../lib/grid'
 import { summarise } from '../lib/result'
 import { isUuid } from '../lib/uuid'
@@ -129,7 +129,7 @@ function OpenEvent({ event, live, notice, titleRef }: ViewProps) {
 
   const visitorText = (
     <>
-      {organiser && t('event.tagline.visitor', { name: organiser.name })} {t('people.already', { count })}
+      {organiser && tNodes('event.tagline.visitor', { name: isolate(organiser.name) })} {t('people.already', { count })}
     </>
   )
 
@@ -150,7 +150,10 @@ function OpenEvent({ event, live, notice, titleRef }: ViewProps) {
                 <>
                   {t('people.countAnd', { count })}{' '}
                   <span className="tag-now">
-                    {t('people.markingNames', { count: others.length, names: joinList(others.map((p) => p.name)) })}
+                    {tNodes('people.markingNames', {
+                      count: others.length,
+                      names: joinNodes(others.map((p) => isolate(p.name))),
+                    })}
                   </span>
                 </>
               )}
@@ -249,7 +252,7 @@ function ClosedEvent({ event, live, notice, titleRef }: ViewProps) {
   const { headline } = summarise(event)
   const organiser = organiserOf(event)
   const count = event.participants.length
-  const names = event.participants.map((p) => p.name).join(t('list.separator'))
+  const names = listNodes(event.participants.map((p) => isolate(p.name)))
 
   const showCalendar = () => {
     const calendar = document.getElementById(CALENDAR_ID)
@@ -266,8 +269,8 @@ function ClosedEvent({ event, live, notice, titleRef }: ViewProps) {
         status={t('result.status')}
         wide={
           <>
-            {organiser && t('result.closedBy', { name: organiser.name })}{' '}
-            {count > MAX_NAMES_IN_BAND ? t('result.peopleMany', { count }) : t('result.people', { count, names })}
+            {organiser && tNodes('result.closedBy', { name: isolate(organiser.name) })}{' '}
+            {count > MAX_NAMES_IN_BAND ? t('result.peopleMany', { count }) : tNodes('result.people', { count, names })}
           </>
         }
       />
@@ -283,7 +286,7 @@ function ClosedEvent({ event, live, notice, titleRef }: ViewProps) {
         <button type="button" onClick={showCalendar}>
           {t('bar.calendar')}
         </button>
-        {organiser && <span className="bar__accent">{t('bar.closedBy', { name: organiser.name })}</span>}
+        {organiser && <span className="bar__accent">{tNodes('bar.closedBy', { name: isolate(organiser.name) })}</span>}
       </BottomBar>
     </div>
   )

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { errorCode, type ErrorCode, type EventData, type Participant } from '../api/types'
 import type { SaveState } from '../hooks/useEvent'
-import { t } from '../i18n'
+import { isolate, t, tNodes } from '../i18n'
 import { countMarked } from '../lib/grid'
 import '../styles/PeoplePanel.css'
 
@@ -77,7 +77,7 @@ export function PeoplePanel({ event, marking, saveState, onRemove }: PeoplePanel
           return (
             <li className="people__row" key={participant.id}>
               <span className="people__who">
-                {participant.name}
+                <bdi>{participant.name}</bdi>
                 {tag && <small>{tag}</small>}
               </span>
               <span className="people__end">
@@ -114,7 +114,7 @@ export function PeoplePanel({ event, marking, saveState, onRemove }: PeoplePanel
               </span>
               {removable && confirming === participant.id && (
                 <div className="people__confirm" role="group" aria-label={t('people.removeLabel', { name: participant.name })}>
-                  <p>{t('people.removeConfirm', { name: participant.name })}</p>
+                  <p>{tNodes('people.removeConfirm', { name: isolate(participant.name) })}</p>
                   <button
                     type="button"
                     className="link-btn"

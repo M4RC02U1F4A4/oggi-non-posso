@@ -27,10 +27,14 @@ export function Band({ title, eyebrow, status, wide, narrow, titleRef }: BandPro
           <Link to="/" className="band__logo" aria-label={t('app.home')}>
             {t('app.name')}
           </Link>
-          {eyebrow && <p className="band__eyebrow">{eyebrow}</p>}
+          {eyebrow && (
+            <p className="band__eyebrow">
+              <bdi>{eyebrow}</bdi>
+            </p>
+          )}
           {title !== undefined ? (
             <h1 className="band__title" ref={titleRef} tabIndex={titleRef ? -1 : undefined}>
-              {title}
+              <bdi>{title}</bdi>
             </h1>
           ) : (
             <div className="band__title" />

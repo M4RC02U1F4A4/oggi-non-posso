@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import type { EventData } from '../api/types'
-import { joinList, t } from '../i18n'
+import { isolate, joinNodes, t, tNodes } from '../i18n'
 import { capitalise, formatDayLong, formatDayShort, monthLong, parseDate, spansMonths } from '../lib/dates'
 import { slotsText, summarise } from '../lib/result'
 import { VoteTable } from './VoteTable'
@@ -53,7 +53,7 @@ export function ResultView({ event, children }: ResultViewProps) {
                 <li className="result__near" key={`${group.date}|${group.slots[0]}`}>
                   <b>{formatDayShort(group.date, withMonth)}</b>
                   <span>{slotsText(group.slots)}</span>
-                  <em>{t('result.without', { names: joinList(group.missing.map((p) => p.name)) })}</em>
+                  <em>{tNodes('result.without', { names: joinNodes(group.missing.map((p) => isolate(p.name))) })}</em>
                 </li>
               ))}
             </ul>
