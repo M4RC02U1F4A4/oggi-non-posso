@@ -129,7 +129,8 @@ export const it = {
   'event.removed': 'Chi organizza ha tolto il tuo nome: per segnare di nuovo, scrivilo ancora.',
 
   'people.title': { one: 'Ha segnato una persona', other: 'Hanno segnato in {count}' },
-  'people.count': { one: 'Ha segnato una persona', other: 'Hanno segnato in {count}' },
+  'people.countAlone': { one: 'Ha segnato una persona.', other: 'Hanno segnato in {count}.' },
+  'people.countAnd': { one: 'Ha segnato una persona,', other: 'Hanno segnato in {count},' },
   'people.already': { one: 'Ha già segnato una persona.', other: 'Hanno già segnato in {count}.' },
   'people.you': 'tu',
   'people.organiser': 'organizza',
@@ -199,6 +200,7 @@ export const it = {
   'share.prompt': 'Manca qualcuno? Mandagli il link',
   'share.copy': 'Copia il link',
   'copy.done': 'Copiato',
+  'copy.failedShort': 'Non copiato',
   'copy.failed': 'Copia non riuscita: seleziona il link e copialo a mano.',
 
   // The organiser's controls.

@@ -60,7 +60,7 @@
 
 @media (min-width: 900px) {
   :root {
-    --gutter: 48px;
+    --gutter: clamp(28px, 3.75vw, 48px);
   }
 }
 
