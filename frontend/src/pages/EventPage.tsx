@@ -6,7 +6,7 @@ import { JoinForm } from '../components/JoinForm'
 import { OrganiserPanel } from '../components/OrganiserPanel'
 import { PeoplePanel } from '../components/PeoplePanel'
 import { Header, NotWord } from '../components/Header'
-import { CALENDAR_ID, ResultView } from '../components/ResultView'
+import { ResultView } from '../components/ResultView'
 import { ShareBox } from '../components/ShareBox'
 import { VoteTable } from '../components/VoteTable'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
@@ -241,14 +241,8 @@ function ClosedEvent({ event, live, notice, titleRef }: ViewProps) {
   const organiser = organiserOf(event)
   const count = event.participants.length
 
-  const showCalendar = () => {
-    const calendar = document.getElementById(CALENDAR_ID)
-    calendar?.scrollIntoView({ block: 'start' })
-    calendar?.focus({ preventScroll: true })
-  }
-
   return (
-    <div className="page page--bar">
+    <div className="page">
       <div className="wrap">
         <Header titleRef={titleRef} eyebrow={isolate(event.title)} title={headline}>
           <p className="pill">{t('result.status', { count })}</p>
@@ -267,12 +261,6 @@ function ClosedEvent({ event, live, notice, titleRef }: ViewProps) {
           </div>
         )}
       </ResultView>
-      <BottomBar>
-        <button type="button" onClick={showCalendar}>
-          {t('bar.calendar')}
-        </button>
-        {organiser && <span className="bar__end">{tNodes('bar.closedBy', { name: isolate(organiser.name) })}</span>}
-      </BottomBar>
     </div>
   )
 }

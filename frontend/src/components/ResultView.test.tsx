@@ -12,11 +12,9 @@ describe('ResultView', () => {
     expect(missing?.textContent).toBe('manca Luca')
     expect(missing?.querySelector('bdi')?.textContent).toBe('Luca')
     expect(screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)).toEqual([
-      'Ci siete tutti',
-      'Se manca una persona sola',
       'Tutto il calendario',
+      'Se manca una persona sola',
     ])
-    expect(container.querySelectorAll('.result__free')).toHaveLength(3)
   })
 
   it('says "tu" when the caller is the one missing', () => {

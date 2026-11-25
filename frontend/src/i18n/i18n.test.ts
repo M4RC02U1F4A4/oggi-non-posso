@@ -8,7 +8,7 @@ describe('t', () => {
   })
 
   it('fills in variables', () => {
-    expect(t('bar.closedBy', { name: 'Giulia' })).toBe('chiusa da Giulia')
+    expect(t('result.closedBy', { name: 'Giulia' })).toBe('Giulia ha chiuso.')
   })
 
   it('chooses the plural form by count', () => {
@@ -24,8 +24,8 @@ describe('t', () => {
   })
 
   it('throws on a missing variable', () => {
-    expect(() => t('bar.closedBy')).toThrow(/name/)
-    expect(() => t('bar.closedBy', { nome: 'Giulia' })).toThrow(/name/)
+    expect(() => t('result.closedBy')).toThrow(/name/)
+    expect(() => t('result.closedBy', { nome: 'Giulia' })).toThrow(/name/)
   })
 
   it('throws when plural forms get no count', () => {
@@ -54,7 +54,7 @@ describe('tNodes', () => {
   const html = (node: Parameters<typeof renderToStaticMarkup>[0]) => renderToStaticMarkup(node)
 
   it('fills in elements, and chooses the plural form by count', () => {
-    expect(html(tNodes('bar.closedBy', { name: isolate('Giulia') }))).toBe('chiusa da <bdi>Giulia</bdi>')
+    expect(html(tNodes('result.closedBy', { name: isolate('Giulia') }))).toBe('<bdi>Giulia</bdi> ha chiuso.')
     expect(html(tNodes('peek.missing', { count: 2, names: joinNodes(['Luca', 'Marta'].map(isolate)) }))).toBe(
       'Non possono <bdi>Luca</bdi> e <bdi>Marta</bdi>',
     )
@@ -69,6 +69,6 @@ describe('tNodes', () => {
   })
 
   it('throws on a missing variable', () => {
-    expect(() => tNodes('bar.closedBy', {})).toThrow(/name/)
+    expect(() => tNodes('result.closedBy', {})).toThrow(/name/)
   })
 })

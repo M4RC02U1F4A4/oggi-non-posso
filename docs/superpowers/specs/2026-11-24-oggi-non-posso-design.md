@@ -315,8 +315,9 @@ address counts by its /56, the block a home line is commonly given.
     name?" form.
   - Open, joined: the day cards to mark; a people panel (who marked how
     many slots, who is marking right now) and the share link.
-  - Closed: the result — the everyone-free groups, the one-missing groups,
-    and all the day cards with counts.
+  - Closed: the result — all the day cards first, as the recap (counts,
+    green where everyone can), then the next best groups with who is
+    missing.
   - With the organiser key: close / reopen, remove a participant, copy both
     links.
 - `/e/:id/o/:key` — the organiser link, with the organiser key (a UUID) in
@@ -383,9 +384,9 @@ only "I can't"; green means only "everyone can". No other accent colour.
 - The phone has a white bar fixed at the bottom with a rule on top: "Non
   puoi in **N** momenti" (N in red) and the saved state; on the creation
   page the number of days and the create button.
-- Result: green rows with a round check for the moments everyone can make,
-  white rows for the next best with who is missing on the right ("manca
-  **Anna**", "manchi **tu**"), then all the day cards.
+- Result: all the day cards first, as the recap (green chips with a check
+  where everyone can), then white rows for the next best with who is
+  missing on the right ("manca **Anna**", "manchi **tu**"). No bottom bar.
 - Phone first (390 px wide); the desktop layout (1280 px) is the same page
   with a sidebar (about 330 px) for the people and the organiser's links.
 

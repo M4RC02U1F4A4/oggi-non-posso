@@ -188,8 +188,6 @@ export const it = {
   'bar.saved': 'salvato',
   'bar.saving': 'salvo…',
   'bar.failed': 'non salvato',
-  'bar.calendar': 'Vedi tutto il calendario',
-  'bar.closedBy': 'chiusa da {name}',
 
   'join.title': 'Come ti chiami?',
   'join.placeholder': 'Il tuo nome',
@@ -230,7 +228,6 @@ export const it = {
     one: 'Ci siete tutti in un momento',
     other: 'Ci siete tutti in {word} momenti',
   },
-  'result.free.title': 'Ci siete tutti',
   'result.tier.title': { one: 'Se manca una persona sola', other: 'Se mancano {word} persone' },
   'result.missing': { one: 'manca {names}', other: 'mancano {names}' },
   'result.missingYou': { one: 'manchi {names}', other: 'mancate {names}' },

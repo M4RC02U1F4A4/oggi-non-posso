@@ -1,18 +1,27 @@
-/* The closed event: green rows for the moments everyone can make, white
-   rows for the next best, then all the days. */
+/* The closed event: all the days first, as the recap, then white rows for
+   the next best moments with who is missing. */
 
 .result {
   padding-bottom: 32px;
 }
 
-.result__lists {
-  display: grid;
-  gap: 24px;
+.result__calendar {
   margin-top: 18px;
+}
+
+.result__section {
+  margin-top: 32px;
 }
 
 .result__title {
   margin-bottom: 10px;
+}
+
+.result__note {
+  margin: -4px 0 12px;
+  color: var(--mute);
+  font-size: 0.8125rem;
+  line-height: 1.4;
 }
 
 .result__list {
@@ -30,23 +39,6 @@
   border-radius: 14px;
   padding: 12px 14px;
   background: var(--surface);
-}
-
-.result__free {
-  border-color: var(--ok-rule);
-  background: var(--ok-bg);
-}
-
-.result__check {
-  display: flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: var(--ok);
-  color: var(--ok-mark);
 }
 
 .result__when {
@@ -79,39 +71,23 @@
   font-weight: 600;
 }
 
-.result__calendar {
+.result__organiser {
+  max-width: 420px;
   margin-top: 32px;
 }
 
-/* Takes the focus from "see the whole calendar"; it is not a control. */
-.result__calendar h2:focus {
-  outline: none;
-  box-shadow: none;
-}
-
-.result__note {
-  margin: -4px 0 12px;
-  color: var(--mute);
-  font-size: 0.8125rem;
-  line-height: 1.4;
-}
-
-.result__organiser {
-  max-width: 420px;
-  margin-top: 24px;
-}
-
 @media (min-width: 900px) {
-  .result__lists {
-    max-width: 680px;
+  .result__calendar {
     margin-top: 24px;
   }
 
-  .result__calendar {
+  .result__section {
+    max-width: 680px;
     margin-top: 40px;
   }
 
   .result__organiser {
     max-width: 360px;
+    margin-top: 40px;
   }
 }
