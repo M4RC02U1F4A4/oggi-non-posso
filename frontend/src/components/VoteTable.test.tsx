@@ -15,17 +15,29 @@ describe('VoteTable, marking', () => {
     expect(screen.getByText('venerdì 11, mattina: non in programma')).toBeDefined()
   })
 
-  it('writes the names in the cells, each kept apart from the others', () => {
+  it('says under a slot how many others can not, and marks the caller\'s own slots instead', () => {
     render(<VoteTable event={fixtureEvent('Anna')} mode="mark" onToggle={vi.fn()} />)
-    const names = screen.getByRole('button', { name: /^domenica 13, cena/ }).querySelector('.vt__names')
-    expect(names?.textContent).toBe('Marta, Paolo')
-    expect([...(names?.querySelectorAll('bdi') ?? [])].map((name) => name.textContent)).toEqual(['Marta', 'Paolo'])
+    const others = screen.getByRole('button', { name: /^domenica 13, cena/ })
+    expect(others.querySelector('.vt__count')?.textContent).toBe('2 no')
+    expect(others.getAttribute('aria-pressed')).toBe('false')
+
+    const mine = screen.getByRole('button', { name: 'sabato 12, mattina: non puoi. Non può nemmeno Paolo' })
+    expect(mine.getAttribute('aria-pressed')).toBe('true')
+    expect(mine.classList.contains('is-mine')).toBe(true)
+    expect(mine.querySelector('.vt__count')).toBeNull()
+    expect(mine.querySelector('.vt__badge svg')).not.toBeNull()
   })
 
-  it('writes two names and how many more in a crowded cell', () => {
-    render(<VoteTable event={fixtureEvent('Giulia')} mode="mark" onToggle={vi.fn()} />)
-    const names = screen.getByRole('button', { name: /^venerdì 18, pomeriggio/ }).querySelector('.vt__names')
-    expect(names?.textContent).toBe('Luca, Anna +2')
+  it('names each day in full on its card', () => {
+    render(<VoteTable event={fixtureEvent('Anna')} mode="mark" onToggle={vi.fn()} />)
+    expect(screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)).toEqual([
+      'Venerdì 11 dicembre',
+      'Sabato 12 dicembre',
+      'Domenica 13 dicembre',
+      'Venerdì 18 dicembre',
+      'Sabato 19 dicembre',
+      'Domenica 20 dicembre',
+    ])
   })
 
   it('toggles one pair on a cell and the whole day on its header', () => {
@@ -144,7 +156,7 @@ describe('VoteTable, with the names open', () => {
 })
 
 describe('VoteTable, more than one month', () => {
-  it('names the month in every accessible name', () => {
+  it('names the month in every accessible name, and the months between the cards', () => {
     const event = fixtureEvent('Anna', {
       slots: ['dinner'],
       days: [
@@ -156,11 +168,16 @@ describe('VoteTable, more than one month', () => {
     expect(screen.getByRole('button', { name: 'giovedì 31 dicembre, cena: puoi' })).toBeDefined()
     expect(screen.getByRole('button', { name: 'sabato 2 gennaio, cena: puoi' })).toBeDefined()
     expect(screen.getByRole('button', { name: 'sabato 2 gennaio: segna tutto il giorno' })).toBeDefined()
+    expect([...document.querySelectorAll('.vt__month')].map((month) => month.textContent)).toEqual([
+      'dicembre 2026',
+      'gennaio 2027',
+    ])
   })
 
   it('leaves the month out while every day is in the same one', () => {
     render(<VoteTable event={fixtureEvent('Anna')} mode="mark" onToggle={vi.fn()} />)
     expect(screen.getByRole('button', { name: 'venerdì 11: segna tutto il giorno' })).toBeDefined()
+    expect(document.querySelector('.vt__month')).toBeNull()
   })
 })
 
@@ -178,15 +195,18 @@ describe('VoteTable, looking only', () => {
     expect(screen.queryByRole('status')).toBeNull()
   })
 
-  it('shows the count of the caller too on the closed event, and zero where everyone is free', () => {
-    const { container } = render(<VoteTable event={closedFixtureEvent('Anna')} mode="result" variant="mini" />)
+  it('shows the count of the caller too on the closed event, and a check where everyone is free', () => {
+    const { container } = render(<VoteTable event={closedFixtureEvent('Anna')} mode="result" />)
     expect(container.querySelectorAll('.is-mine')).toHaveLength(0)
     const free = [...container.querySelectorAll('.is-free')]
     expect(free).toHaveLength(5)
-    // Everyone free is a visible zero, not an empty yellow cell.
-    for (const cell of free) expect(cell.querySelector('.vt__count')?.textContent).toBe('0')
+    for (const chip of free) {
+      expect(chip.querySelector('.vt__ok svg')).not.toBeNull()
+      expect(chip.querySelector('.vt__count')).toBeNull()
+    }
     const counts = [...container.querySelectorAll('.vt__count')].map((count) => count.textContent)
-    expect(counts.slice(0, 3)).toEqual(['3', '1', '0'])
+    expect(counts.slice(0, 3)).toEqual(['3 no', '1 no', '2 no'])
     expect(screen.getByRole('button', { name: 'venerdì 18, pomeriggio: non possono Luca, Anna, Marta e Paolo' })).toBeDefined()
+    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(6)
   })
 })

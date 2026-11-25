@@ -1,17 +1,17 @@
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { useMatch, useNavigate, useParams } from 'react-router'
 import type { EventData } from '../api/types'
-import { Band } from '../components/Band'
 import { BottomBar } from '../components/BottomBar'
 import { JoinForm } from '../components/JoinForm'
 import { OrganiserPanel } from '../components/OrganiserPanel'
 import { PeoplePanel } from '../components/PeoplePanel'
+import { Header, NotWord } from '../components/Header'
 import { CALENDAR_ID, ResultView } from '../components/ResultView'
 import { ShareBox } from '../components/ShareBox'
 import { VoteTable } from '../components/VoteTable'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useEvent, type UseEvent } from '../hooks/useEvent'
-import { isolate, joinNodes, listNodes, t, tNodes } from '../i18n'
+import { isolate, joinNodes, t, tNodes } from '../i18n'
 import { countMarked, findParticipant, organiserOf } from '../lib/grid'
 import { summarise } from '../lib/result'
 import { isUuid } from '../lib/uuid'
@@ -78,8 +78,8 @@ function EventView({ id, link }: { id: string; link: OrganiserLink }) {
   if (live.state === 'error') {
     return (
       <div className="page">
-        <Band title={t('event.loadFailed')} />
         <main className="wrap event-message">
+          <Header title={t('event.loadFailed')} />
           <p role="alert">{t(`error.${live.loadError ?? 'internal'}`)}</p>
           <button type="button" className="btn" onClick={live.refresh}>
             {t('common.retry')}
@@ -92,7 +92,9 @@ function EventView({ id, link }: { id: string; link: OrganiserLink }) {
   if (!live.event) {
     return (
       <div className="page">
-        <Band />
+        <div className="wrap">
+          <Header />
+        </div>
         <p className="visually-hidden" role="status">
           {t('common.loading')}
         </p>
@@ -101,7 +103,7 @@ function EventView({ id, link }: { id: string; link: OrganiserLink }) {
   }
 
   const notice = badOrganiserLink ? (
-    <p className="wrap event-notice" role="status">
+    <p className="event-notice" role="status">
       <span className="alert">{t('event.organiserLinkInvalid')}</span>
     </p>
   ) : null
@@ -126,104 +128,93 @@ function OpenEvent({ event, live, notice, titleRef }: ViewProps) {
   const count = event.participants.length
   const marked = me ? countMarked(event, me.id) : 0
   const others = event.participants.filter((p) => p.id !== event.me && live.marking.has(p.id))
+  const title = isolate(event.title)
 
-  const visitorText = (
-    <>
-      {organiser && tNodes('event.tagline.visitor', { name: isolate(organiser.name) })} {t('people.already', { count })}
-    </>
+  const header = me ? (
+    <Header
+      titleRef={titleRef}
+      eyebrow={
+        me.organiser
+          ? tNodes('event.byYou', { title })
+          : organiser
+            ? tNodes('event.by', { title, name: isolate(organiser.name) })
+            : title
+      }
+      title={tNodes('mark.question', { not: <NotWord />, name: isolate(me.name) })}
+      text={t('mark.text')}
+    >
+      {others.length > 0 && (
+        <p className="event__live only-narrow">
+          <span className="tag-now">
+            {tNodes('people.markingNames', {
+              count: others.length,
+              names: joinNodes(others.map((p) => isolate(p.name))),
+            })}
+          </span>
+        </p>
+      )}
+    </Header>
+  ) : (
+    <Header
+      titleRef={titleRef}
+      eyebrow={organiser && tNodes('event.visitor.by', { name: isolate(organiser.name) })}
+      title={event.title}
+      text={tNodes('event.visitor.text', { count, not: <NotWord /> })}
+    />
   )
+
+  const status = tNodes('bar.status', {
+    marked: tNodes('bar.marked', { count: marked, n: <b className="event__n">{marked}</b> }),
+    state: t(live.saveState === 'saving' ? 'bar.saving' : live.saveState === 'failed' ? 'bar.failed' : 'bar.saved'),
+  })
 
   return (
     <div className={me ? 'page page--bar' : 'page'}>
-      <Band
-        titleRef={titleRef}
-        title={event.title}
-        status={t('event.status.open')}
-        wide={me ? t(event.can_manage ? 'event.tagline.organiser' : 'event.tagline.participant') : visitorText}
-        narrow={
-          me ? (
-            <>
-              {t('event.tagline.short')}{' '}
-              {others.length === 0 ? (
-                t('people.countAlone', { count })
-              ) : (
-                <>
-                  {t('people.countAnd', { count })}{' '}
-                  <span className="tag-now">
-                    {tNodes('people.markingNames', {
-                      count: others.length,
-                      names: joinNodes(others.map((p) => isolate(p.name))),
-                    })}
-                  </span>
-                </>
-              )}
-            </>
-          ) : (
-            visitorText
-          )
-        }
-      />
-
-      {notice}
       <main className="wrap event">
-        {!me && (
-          <div className="event__join">
-            {live.dropped && (
-              <p className="alert event__removed" role="status">
-                {t('event.removed')}
-              </p>
-            )}
-            <JoinForm onJoin={live.join} />
-          </div>
-        )}
+        <div className="event__main">
+          {header}
+          {notice}
 
-        <div className="event__table">
-          <VoteTable event={event} mode={me ? 'mark' : 'read'} onToggle={live.toggle} />
-
-          {live.saveError !== null && (
-            <p className="alert event__alert" role="alert">
-              {t('event.saveFailed', { reason: t(`error.${live.saveError}`) })}
-            </p>
+          {!me && (
+            <div className="event__join">
+              {live.dropped && (
+                <p className="alert event__removed" role="status">
+                  {t('event.removed')}
+                </p>
+              )}
+              <JoinForm onJoin={live.join} />
+              <p className="event__note">{t('note.visitor')}</p>
+            </div>
           )}
 
-          <ul className="legend only-wide">
-            {me && (
-              <li>
-                <i className="legend__swatch legend__swatch--mine" />
-                {t('legend.mine')}
-              </li>
-            )}
-            <li>
-              <i className="legend__swatch legend__swatch--others" />
-              <span className="only-light">{t(me ? 'legend.others.light' : 'legend.othersRead.light')}</span>
-              <span className="only-dark">{t(me ? 'legend.others.dark' : 'legend.othersRead.dark')}</span>
-            </li>
-            <li>
-              <i className="legend__swatch" />
-              {t('legend.free')}
-            </li>
-          </ul>
+          <div className="event__days">
+            <VoteTable event={event} mode={me ? 'mark' : 'read'} onToggle={live.toggle} />
 
-          <p className="event__note only-narrow">
-            {me ? (
-              <>
-                <span className="only-light">{t('note.mark.light')}</span>
-                <span className="only-dark">{t('note.mark.dark')}</span>
-              </>
-            ) : (
-              t('note.visitor')
+            {live.saveError !== null && (
+              <p className="alert event__alert" role="alert">
+                {t('event.saveFailed', { reason: t(`error.${live.saveError}`) })}
+              </p>
             )}
-          </p>
+
+            {me && (
+              <>
+                <p className="event__status only-wide">{status}</p>
+                <p className="event__note">{t('note.mark')}</p>
+              </>
+            )}
+          </div>
         </div>
 
         <aside className="event__side">
-          <PeoplePanel
-            event={event}
-            marking={live.marking}
-            saveState={live.saveState}
-            onRemove={event.can_manage ? live.remove : undefined}
-          />
-          <div className="event__box">
+          <div className="box">
+            <PeoplePanel
+              event={event}
+              marking={live.marking}
+              saveState={live.saveState}
+              onRemove={event.can_manage ? live.remove : undefined}
+            />
+          </div>
+          <div className="box">
             {event.can_manage ? (
               <OrganiserPanel event={event} onClose={live.close} onReopen={live.reopen} />
             ) : (
@@ -235,24 +226,20 @@ function OpenEvent({ event, live, notice, titleRef }: ViewProps) {
 
       {me && (
         <BottomBar>
-          <span>{t('bar.marked', { count: marked })}</span>
-          <span className="bar__accent">
-            {t(live.saveState === 'saving' ? 'bar.saving' : live.saveState === 'failed' ? 'bar.failed' : 'bar.saved')}
-          </span>
+          <span className="event__status">{status}</span>
         </BottomBar>
       )}
     </div>
   )
 }
 
-/** Above this many people the band counts them without naming them. */
-const MAX_NAMES_IN_BAND = 8
+/** Above this many people the page counts them without naming them. */
+const MAX_NAMES_IN_HEADER = 8
 
 function ClosedEvent({ event, live, notice, titleRef }: ViewProps) {
   const { headline } = summarise(event)
   const organiser = organiserOf(event)
   const count = event.participants.length
-  const names = listNodes(event.participants.map((p) => isolate(p.name)))
 
   const showCalendar = () => {
     const calendar = document.getElementById(CALENDAR_ID)
@@ -262,22 +249,20 @@ function ClosedEvent({ event, live, notice, titleRef }: ViewProps) {
 
   return (
     <div className="page page--bar">
-      <Band
-        titleRef={titleRef}
-        eyebrow={event.title}
-        title={headline}
-        status={t('result.status')}
-        wide={
-          <>
+      <div className="wrap">
+        <Header titleRef={titleRef} eyebrow={isolate(event.title)} title={headline}>
+          <p className="pill">{t('result.status', { count })}</p>
+          <p className="head__text">
             {organiser && tNodes('result.closedBy', { name: isolate(organiser.name) })}{' '}
-            {count > MAX_NAMES_IN_BAND ? t('result.peopleMany', { count }) : tNodes('result.people', { count, names })}
-          </>
-        }
-      />
-      {notice}
+            {count <= MAX_NAMES_IN_HEADER &&
+              tNodes('result.people', { count, names: joinNodes(event.participants.map((p) => isolate(p.name))) })}
+          </p>
+        </Header>
+        {notice}
+      </div>
       <ResultView event={event}>
         {event.can_manage && (
-          <div className="event__box">
+          <div className="box">
             <OrganiserPanel event={event} onClose={live.close} onReopen={live.reopen} />
           </div>
         )}
@@ -286,7 +271,7 @@ function ClosedEvent({ event, live, notice, titleRef }: ViewProps) {
         <button type="button" onClick={showCalendar}>
           {t('bar.calendar')}
         </button>
-        {organiser && <span className="bar__accent">{tNodes('bar.closedBy', { name: isolate(organiser.name) })}</span>}
+        {organiser && <span className="bar__end">{tNodes('bar.closedBy', { name: isolate(organiser.name) })}</span>}
       </BottomBar>
     </div>
   )

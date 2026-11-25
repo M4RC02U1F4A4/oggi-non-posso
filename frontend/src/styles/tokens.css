@@ -1,61 +1,53 @@
-/* Design tokens. Colours and type come from the design document's "Look";
-   the dark values follow the dark mockup: black surfaces, a yellow band,
-   "you can't" cells inverted, count greys that get lighter with more people. */
+/* Design tokens. Colours and type come from the design document's "Look":
+   a white ground and warm ink; red only for "I can't", green only for
+   "everyone can". The dark theme is the same page on a warm black. */
 
 :root {
   color-scheme: light dark;
 
-  --yellow: #ffd100;
-  --black: #000000;
-  --white: #ffffff;
-
   /* Surfaces and text */
   --bg: #ffffff;
-  --text: #000000;
-  --mute: #5e5e5a;
-  /* Darker than the mockups' #8a8a85, which is too faint to read on white. */
-  --placeholder: #6e6e69;
-  --off: #a5a5a0;
-  --disabled: #b4b4ae;
+  --surface: #ffffff;
+  --soft: #f5f4f1;
+  --tinted: #fbfaf8;
+  --text: #22211f;
+  --mute: #6f6c66;
+  --placeholder: #8a8780;
+  --rule: #e2dfd9;
+  --rule-soft: #f0eee9;
+  /* Slots and days that are not in play */
+  --off: #9b9790;
+  --off-rule: #c9c5bd;
 
-  /* Rules: strong for the timetable's frame, soft between columns */
-  --rule-strong: #000000;
-  --rule: #bdbdb8;
+  /* "I can't": red text on a pale red. Slightly darker than the mockups'
+     #d4342b, which is 4.4:1 on the pale red: this one reads at 4.8:1. */
+  --no: #c9302a;
+  --no-bg: #fff0ee;
+  --no-rule: #c9302a;
+  --no-mark: #ffffff;
 
-  /* How many people can't: one, two, three or more */
-  --count-1: #f0f0ee;
-  --count-2: #dededb;
-  --count-3: #c8c8c4;
+  /* "Everyone can" */
+  --ok: #1d8a4b;
+  --ok-bg: #eaf6ef;
+  --ok-rule: #c4e5d1;
+  --ok-mark: #ffffff;
 
-  /* "You can't" */
-  --mine-bg: #000000;
-  --mine-text: #ffffff;
-  --mine-label: #ffd100;
-  --mine-rule: #6a6a6a;
-
-  /* The band and what sits on yellow */
-  --band-bg: #ffd100;
-  --band-text: #000000;
-
-  /* Primary buttons and the bar at the bottom of the phone layout */
-  --action-bg: #000000;
-  --action-text: #ffd100;
-  --bar-bg: #000000;
-  --bar-text: #ffffff;
-  --bar-accent: #ffd100;
-
-  /* Switched-on choices (picked days, slots in play) */
-  --on-bg: #000000;
+  /* Primary buttons, picked days and the "who is missing" bubble: ink */
+  --action-bg: #22211f;
+  --action-text: #ffffff;
+  --on-bg: #22211f;
   --on-text: #ffffff;
-  --on-accent: #ffd100;
+  --tip-bg: #22211f;
+  --tip-text: #ffffff;
+  --hover: #eceae5;
 
-  --focus-outer: var(--text);
-  --focus-inner: var(--bg);
+  --focus: #22211f;
+  --focus-gap: #ffffff;
 
-  --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
-  --font-body: 'Barlow', system-ui, sans-serif;
+  --font-display: 'Fraunces Variable', Georgia, serif;
+  --font-body: 'Figtree Variable', system-ui, sans-serif;
 
-  --gutter: 18px;
+  --gutter: 16px;
   --page-max: 1280px;
 }
 
@@ -67,33 +59,37 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0e0e0d;
-    --text: #f4f4f1;
-    --mute: #a3a39c;
-    --placeholder: #8a8a85;
-    --off: #6f6f69;
-    --disabled: #5c5c57;
+    --bg: #161514;
+    --surface: #1f1e1c;
+    --soft: #262522;
+    --tinted: #1f1e1c;
+    --text: #f1efea;
+    --mute: #a19d95;
+    --placeholder: #8c887f;
+    --rule: #34322e;
+    --rule-soft: #2a2926;
+    --off: #8c887f;
+    --off-rule: #4a4843;
 
-    --rule-strong: #f4f4f1;
-    --rule: #4a4a45;
+    --no: #ff6b5f;
+    --no-bg: #3a1f1c;
+    --no-rule: #ff6b5f;
+    --no-mark: #161514;
 
-    --count-1: #232321;
-    --count-2: #32322f;
-    --count-3: #44443f;
+    --ok: #4cc27a;
+    --ok-bg: #16301f;
+    --ok-rule: #2a5a3a;
+    --ok-mark: #161514;
 
-    --mine-bg: #f4f4f1;
-    --mine-text: #000000;
-    --mine-label: #000000;
-    --mine-rule: #b9b9b3;
+    --action-bg: #f1efea;
+    --action-text: #161514;
+    --on-bg: #f1efea;
+    --on-text: #161514;
+    --tip-bg: #f1efea;
+    --tip-text: #161514;
+    --hover: #2e2c29;
 
-    --action-bg: #ffd100;
-    --action-text: #000000;
-    --bar-bg: #ffd100;
-    --bar-text: #000000;
-    --bar-accent: #000000;
-
-    --on-bg: #f4f4f1;
-    --on-text: #000000;
-    --on-accent: #000000;
+    --focus: #f1efea;
+    --focus-gap: #161514;
   }
 }

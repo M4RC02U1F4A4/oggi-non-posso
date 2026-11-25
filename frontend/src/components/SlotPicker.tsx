@@ -34,9 +34,9 @@ export function SlotPicker({ draft, onToggleSlot, onToggleDaySlot }: SlotPickerP
 
   return (
     <div className="slots">
-      <div className="section-title">
+      <div className="slots__title">
         <h2>{t('create.slots.title')}</h2>
-        <small className="only-wide">{t('create.slots.hint')}</small>
+        <small>{t('create.slots.hint')}</small>
       </div>
       <div className="slots__event" role="group" aria-label={t('create.slots.title')}>
         {SLOTS.map((slot) => {
@@ -50,13 +50,13 @@ export function SlotPicker({ draft, onToggleSlot, onToggleDaySlot }: SlotPickerP
               onClick={() => onToggleSlot(slot)}
               key={slot}
             >
-              <SlotLabel slot={slot} />
+              {t(`slot.long.${slot}`)}
             </button>
           )
         })}
       </div>
 
-      <div className="section-title slots__title only-wide">
+      <div className="slots__title slots__title--days only-wide">
         <h2>{t('create.perDay.title')}</h2>
         <small>{t('create.perDay.hint', { count: draft.days.length })}</small>
       </div>

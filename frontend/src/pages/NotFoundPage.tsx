@@ -1,5 +1,5 @@
 import { Link } from 'react-router'
-import { Band } from '../components/Band'
+import { Header } from '../components/Header'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { t } from '../i18n'
 import '../styles/NotFoundPage.css'
@@ -10,8 +10,8 @@ export function NotFoundPage({ kind = 'page' }: { kind?: 'event' | 'page' }) {
   useDocumentTitle(title)
   return (
     <div className="page">
-      <Band title={title} />
       <main className="wrap notfound">
+        <Header title={title} />
         <p>{t(`notFound.${kind}.text`)}</p>
         <Link className="btn" to="/">
           {t('notFound.cta')}

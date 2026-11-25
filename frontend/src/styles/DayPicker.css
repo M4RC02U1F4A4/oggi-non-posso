@@ -1,114 +1,111 @@
+/* A month in a bordered card: picked days are filled ink circles. */
+
+.picker__card {
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  padding: 10px;
+  background: var(--surface);
+}
+
 .picker__nav {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 4px;
-  font-family: var(--font-body);
-  font-size: 0.875rem;
-  font-weight: 600;
-  line-height: 1.2;
+  gap: 8px;
+  padding: 0 4px 6px;
 }
 
 .picker__nav b {
-  min-width: 7.5em;
+  font-size: 0.9375rem;
   font-weight: 600;
-  text-align: center;
 }
 
 .picker__arrow {
-  width: 40px;
-  height: 32px;
-  font-size: 1.25rem;
-  font-weight: 400;
-  line-height: 1;
+  position: relative;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--rule);
+  border-radius: 50%;
+  color: var(--mute);
 }
 
-.picker__arrow--prev::before {
-  content: '‹';
+/* A chevron drawn with two borders. */
+.picker__arrow::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  border-top: 1.5px solid currentColor;
+  border-left: 1.5px solid currentColor;
+  transform: translate(-30%, -50%) rotate(-45deg);
 }
 
 .picker__arrow--next::before {
-  content: '›';
-}
-
-.picker__arrow--next {
-  margin-right: -12px;
+  transform: translate(-70%, -50%) rotate(135deg);
 }
 
 .picker__arrow:disabled {
-  color: var(--disabled);
+  opacity: 0.35;
 }
 
 .picker__grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  margin-top: 2px;
+  gap: 2px;
+  text-align: center;
 }
 
-.picker__grid > * {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 40px;
-  border-right: 1px solid var(--rule);
-  border-bottom: 1px solid var(--rule);
-  font-size: 1rem;
-  font-weight: 500;
-}
-
-.picker__grid > :nth-child(7n) {
-  border-right: 0;
-}
-
-.picker__grid > .picker__weekday {
-  height: 24px;
-  border-right: 0;
-  border-bottom: 3px solid var(--rule-strong);
-  font-size: 0.75rem;
+.picker__weekday {
+  padding: 4px 0;
+  color: var(--mute);
+  font-size: 0.6875rem;
   font-weight: 600;
 }
 
+.picker__day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  margin: 0 auto;
+  aspect-ratio: 1;
+  max-width: 100%;
+  border-radius: 50%;
+  font-size: 0.875rem;
+}
+
 .picker__day:disabled {
-  color: var(--disabled);
+  color: var(--off);
+  opacity: 0.6;
 }
 
 .picker__day.is-on {
-  border-color: var(--mine-rule);
   background: var(--on-bg);
-  color: var(--on-accent);
-  font-family: var(--font-display);
-  font-size: 1.4375rem;
-  font-weight: 700;
-}
-
-.picker__day:focus-visible {
-  outline: 3px solid var(--focus-outer);
-  outline-offset: -3px;
-  box-shadow: inset 0 0 0 6px var(--focus-inner);
+  color: var(--on-text);
+  font-weight: 600;
 }
 
 @media (hover: hover) {
-  .picker__day:not(:disabled):not(.is-on):hover:not(:focus-visible) {
-    box-shadow: inset 0 0 0 2px var(--rule-strong);
+  .picker__day:not(:disabled, .is-on):hover,
+  .picker__arrow:not(:disabled):hover {
+    background: var(--hover);
   }
 }
 
 .picker__full {
-  margin-top: 10px;
-  font-size: 0.875rem;
-  font-weight: 500;
+  margin-top: 8px;
+  color: var(--mute);
+  font-size: 0.8125rem;
 }
 
 @media (min-width: 900px) {
-  .picker__grid > * {
-    height: 46px;
-    font-size: 1.0625rem;
+  .picker__card {
+    padding: 12px 14px;
   }
 
-  .picker__grid > .picker__weekday {
-    height: 28px;
-  }
-
-  .picker__day.is-on {
-    font-size: 1.625rem;
+  .picker__day {
+    height: 40px;
   }
 }

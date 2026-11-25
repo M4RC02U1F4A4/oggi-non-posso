@@ -14,23 +14,17 @@ export interface PluralForms {
 export type Message = string | PluralForms
 
 export const it = {
-  'app.name': 'oggi non posso',
   'app.title': 'Oggi non posso',
   'app.home': 'Oggi non posso, crea un evento',
   'app.pageTitle': '{title} · Oggi non posso',
 
-  // Slots: column headers, short headers for narrow tables, inside a sentence.
+  // Slots: on a wide chip, inside a sentence.
   'slot.long.morning': 'Mattina',
   'slot.long.lunch': 'Pranzo',
   'slot.long.afternoon': 'Pomeriggio',
   'slot.long.dinner': 'Cena',
   'slot.long.after_dinner': 'Dopocena',
-  'slot.short.morning': 'Matt.',
-  'slot.short.lunch': 'Pranzo',
-  'slot.short.afternoon': 'Pom.',
-  'slot.short.dinner': 'Cena',
-  'slot.short.after_dinner': 'Dopo',
-  // For a narrow button: wider than a table header, narrower than a column.
+  // For a narrow chip, five to a phone's row.
   'slot.medium.morning': 'Mattina',
   'slot.medium.lunch': 'Pranzo',
   'slot.medium.afternoon': 'Pom.',
@@ -129,11 +123,17 @@ export const it = {
   'error.network': 'Non c’è collegamento. Controlla la connessione e riprova.',
 
   // The event page while the voting is open.
-  'event.status.open': 'Votazione aperta',
-  'event.tagline.participant': 'Segna quando non puoi. Quello che resta è la data buona.',
-  'event.tagline.organiser': 'Sei tu che organizzi: quando avete segnato tutti, chiudi la votazione.',
-  'event.tagline.short': 'Segna quando non puoi.',
-  'event.tagline.visitor': '{name} cerca una data.',
+  'event.by': '{title} · organizza {name}',
+  'event.byYou': '{title} · organizzi tu',
+  'event.visitor.by': '{name} cerca una data',
+  'event.visitor.text': {
+    one: 'Ha già risposto una persona. Scrivi il tuo nome e segna quando {not} puoi.',
+    other: 'Hanno già risposto in {count}. Scrivi il tuo nome e segna quando {not} puoi.',
+  },
+  // The question of the page, with "not" set apart: it is the word to notice.
+  'mark.question': 'Quando {not} puoi, {name}?',
+  'mark.not': 'non',
+  'mark.text': 'Tocca i momenti in cui non ci sei. Quelli che lasci così vogliono dire che puoi.',
   'event.loadFailed': 'L’evento non si carica',
   'event.saveFailed': 'Non salvato. {reason}',
   'event.organiserLinkInvalid': 'Questo link per organizzare non vale per questo evento.',
@@ -141,9 +141,6 @@ export const it = {
 
   // Everyone who joined has answered, whether they marked anything or not.
   'people.title': { one: 'Ha risposto una persona', other: 'Hanno risposto in {count}' },
-  'people.countAlone': { one: 'Ha risposto una persona.', other: 'Hanno risposto in {count}.' },
-  'people.countAnd': { one: 'Ha risposto una persona,', other: 'Hanno risposto in {count},' },
-  'people.already': { one: 'Ha già risposto una persona.', other: 'Hanno già risposto in {count}.' },
   'people.you': 'tu',
   'people.organiser': 'organizza',
   'people.youOrganiser': 'tu, organizzi',
@@ -159,9 +156,8 @@ export const it = {
   'people.removeYes': 'Sì, togli',
 
   'table.label': 'Giorni e fasce',
-  'table.day': 'Giorno',
-  'table.more': '+{count}',
-  'cell.mine': 'Non posso',
+  // Under a slot: how many people can not make it.
+  'cell.count': '{count} no',
   'cell.aria.off': '{day}, {slot}: non in programma',
   'cell.aria.mine': '{day}, {slot}: non puoi',
   'cell.aria.mineOthers': {
@@ -184,19 +180,11 @@ export const it = {
   'peek.onlyYou': 'Non puoi solo tu',
   'peek.missing': { one: 'Non può {names}', other: 'Non possono {names}' },
 
-  'legend.mine': 'non puoi tu',
-  'legend.others.light': 'non può qualcun altro, più scuro se sono in tanti',
-  'legend.others.dark': 'non può qualcun altro, più chiaro se sono in tanti',
-  'legend.othersRead.light': 'qualcuno non può, più scuro se sono in tanti',
-  'legend.othersRead.dark': 'qualcuno non può, più chiaro se sono in tanti',
-  'legend.free': 'ci siete tutti, per ora',
-  'note.mark.light':
-    'Nero: non puoi tu. Il numero è quanti altri non possono, tienilo premuto per vedere chi. Tocca il giorno per segnarlo tutto.',
-  'note.mark.dark':
-    'Bianco: non puoi tu. Il numero è quanti altri non possono, tienilo premuto per vedere chi. Tocca il giorno per segnarlo tutto.',
-  'note.visitor': 'Il numero è quante persone non possono. Per segnare le tue fasce scrivi prima il nome.',
+  'note.mark': 'Sotto ogni momento vedi quanti altri non possono: tienilo premuto per sapere chi.',
+  'note.visitor': 'Per ora vedi solo quanti non possono: tocca un momento per sapere chi.',
 
-  'bar.marked': { zero: 'Nessuna fascia segnata', one: '1 fascia segnata', other: '{count} fasce segnate' },
+  'bar.marked': { zero: 'Non hai segnato niente', one: 'Non puoi in {n} momento', other: 'Non puoi in {n} momenti' },
+  'bar.status': '{marked} · {state}',
   'bar.saved': 'salvato',
   'bar.saving': 'salvo…',
   'bar.failed': 'non salvato',
@@ -226,28 +214,28 @@ export const it = {
   'organiser.reopenHelp': 'Tutti possono segnare di nuovo. Le fasce già segnate restano.',
   'organiser.shareLink': 'Link per gli altri',
   'organiser.ownLink': 'Link solo tuo, per organizzare',
-  'organiser.ownLinkHint': 'tienilo da parte',
   'organiser.copy': 'Copia',
   'organiser.copyShare': 'Copia il link per gli altri',
   'organiser.copyOwn': 'Copia il link per organizzare',
 
   // The closed event.
-  'result.status': 'Votazione chiusa',
+  'result.status': {
+    one: 'Votazione chiusa · ha risposto una persona',
+    other: 'Votazione chiusa · hanno risposto in {count}',
+  },
   'result.closedBy': '{name} ha chiuso.',
-  'result.people': { one: 'Ha risposto una persona: {names}.', other: 'Hanno risposto in {count}: {names}.' },
-  'result.peopleMany': 'Hanno risposto in {count}.',
+  'result.people': { one: 'Ha risposto {names}.', other: 'Hanno risposto {names}.' },
   'result.headline': {
     zero: 'Non c’è un momento per tutti',
     one: 'Ci siete tutti in un momento',
     other: 'Ci siete tutti in {word} momenti',
   },
   'result.free.title': 'Ci siete tutti',
-  'result.free.badge': '{count} su {total}',
   'result.tier.title': { one: 'Se manca una persona sola', other: 'Se mancano {word} persone' },
-  'result.without': 'senza {names}',
+  'result.missing': { one: 'manca {names}', other: 'mancano {names}' },
+  'result.missingYou': { one: 'manchi {names}', other: 'mancate {names}' },
   'result.calendar.title': 'Tutto il calendario',
-  'result.calendar.noteHover': 'Il numero è quante persone mancano. Passa sopra una casella per vedere chi.',
-  'result.calendar.noteTap': 'Il numero è quante persone mancano. Tocca una casella per vedere chi.',
+  'result.calendar.note': 'Sotto ogni momento vedi quanti mancano: toccalo per sapere chi.',
 
   'notFound.event.title': 'Questo evento non c’è',
   'notFound.event.text':
@@ -267,6 +255,7 @@ export const it = {
   'create.days.next': 'Mese successivo',
   'create.days.past': '{day}: già passato',
   'create.days.tooFar': '{day}: oltre un anno da oggi',
+  'create.days.count': { zero: 'Nessun giorno scelto', one: '1 giorno scelto', other: '{count} giorni scelti' },
   'create.days.full': 'Al massimo {max} giorni: togline uno per aggiungerne un altro.',
   'create.slots.title': 'Fasce della giornata',
   'create.slots.hint': 'tocca per togliere quelle che non servono',

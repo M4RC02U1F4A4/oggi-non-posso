@@ -1,9 +1,10 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { createEvent } from '../api/client'
-import { Band } from '../components/Band'
 import { CopyButton } from '../components/CopyButton'
 import { DayPicker } from '../components/DayPicker'
+import { Header } from '../components/Header'
+import { maskedOrganiserLink } from '../components/OrganiserPanel'
 import { SlotPicker } from '../components/SlotPicker'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { isolate, t, tNodes, type MessageKey } from '../i18n'
@@ -119,7 +120,9 @@ function CreateForm({ onCreated }: { onCreated: (created: Created) => void }) {
 
   return (
     <div className="page page--bar">
-      <Band title={t('create.title')} wide={t('create.tagline')} />
+      <div className="wrap">
+        <Header title={t('create.title')} text={t('create.tagline')} />
+      </div>
       <form className="wrap create" onSubmit={(e) => void submit(e)} noValidate>
         <div className="create__left">
           <div className="create__fields">
@@ -204,22 +207,17 @@ function CreateForm({ onCreated }: { onCreated: (created: Created) => void }) {
                 {failure}
               </p>
             )}
-            <button type="submit" className="btn create__submit" disabled={busy}>
-              {t(busy ? 'create.submitting' : 'create.submit')}
-            </button>
+            <div className="create__bar">
+              <span className="create__count">{t('create.days.count', { count: draft.days.length })}</span>
+              <button type="submit" className="btn create__submit" disabled={busy}>
+                {t(busy ? 'create.submitting' : 'create.submit')}
+              </button>
+            </div>
           </div>
         </div>
       </form>
     </div>
   )
-}
-
-/** The organiser link with its middle left out: enough to recognise it, not to use it. */
-function maskedOrganiserLink(host: string, eventId: string, key: string): string {
-  return t('created.own.masked', {
-    start: credentials.shareUrl(host, eventId.slice(0, 8)),
-    end: key.slice(-4),
-  })
 }
 
 /** Right after creating: the link for the others, the link to keep, the way in. */
@@ -246,30 +244,34 @@ function CreatedView({ created, organiserKey }: { created: Created; organiserKey
 
   return (
     <div className="page page--bar">
-      <div ref={headingRef} tabIndex={-1} className="created__top">
-        <Band eyebrow={event.title} title={t('created.title')} />
+      <div className="wrap">
+        <div ref={headingRef} tabIndex={-1} className="created__top">
+          <Header eyebrow={isolate(event.title)} title={t('created.title')} />
+        </div>
       </div>
       <main className="wrap created">
         <div className="created__cols">
-          <section>
-            <h2 className="section-title created__title">{t('created.others.title')}</h2>
+          <section className="box">
+            <h2 className="box__title created__title">{t('created.others.title')}</h2>
             <p className="created__text">{t('created.others.text')}</p>
             <p className="created__url">{credentials.shareUrl(host, event.id)}</p>
             <div className="created__row">
-              <CopyButton className="btn" text={shareLink} label={t('created.others.copy')} />
               {canShare && (
-                <button type="button" className="btn btn--outline" onClick={share}>
+                <button type="button" className="btn" onClick={share}>
                   {t('created.others.share')}
                 </button>
               )}
+              <CopyButton
+                className={canShare ? 'btn btn--outline' : 'btn'}
+                text={shareLink}
+                label={t('created.others.copy')}
+              />
             </div>
           </section>
-          <section>
-            <h2 className="section-title created__title">{t('created.own.title')}</h2>
+          <section className="box created__own">
+            <h2 className="box__title created__title">{t('created.own.title')}</h2>
             <p className="created__text">{t('created.own.text')}</p>
-            <p className="created__url created__url--quiet">
-              {maskedOrganiserLink(host, event.id, organiserKey)}
-            </p>
+            <p className="created__url created__url--quiet">{maskedOrganiserLink(host, event.id, organiserKey)}</p>
             <div className="created__row">
               <CopyButton
                 className="btn btn--outline"
@@ -280,10 +282,12 @@ function CreatedView({ created, organiserKey }: { created: Created; organiserKey
           </section>
         </div>
         <div className="created__next">
-          <p className="only-wide">{tNodes('created.next.text', { name: isolate(name) })}</p>
-          <Link className="btn created__open" to={`/e/${event.id}`}>
-            {t('created.next.open')}
-          </Link>
+          <p>{tNodes('created.next.text', { name: isolate(name) })}</p>
+          <div className="created__bar">
+            <Link className="btn created__open" to={`/e/${event.id}`}>
+              {t('created.next.open')}
+            </Link>
+          </div>
         </div>
       </main>
     </div>

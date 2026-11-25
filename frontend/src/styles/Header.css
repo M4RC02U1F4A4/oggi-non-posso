@@ -1,0 +1,82 @@
+/* The top of every page: a small brand, a muted line, a Fraunces title. */
+
+.head {
+  padding-top: 22px;
+}
+
+.head__brand {
+  display: inline-block;
+  border-radius: 4px;
+  color: var(--mute);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.head__eyebrow {
+  margin-top: 14px;
+  color: var(--mute);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.head__brand + .head__title {
+  margin-top: 14px;
+}
+
+.head__title {
+  margin-top: 4px;
+  font-size: 1.875rem;
+  line-height: 1.08;
+  overflow-wrap: anywhere;
+}
+
+/* The title takes the focus when the page changes under the person; it is not a control. */
+.head__title:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.head__text {
+  max-width: 40rem;
+  margin-top: 8px;
+  color: var(--mute);
+  font-size: 0.90625rem;
+  line-height: 1.4;
+}
+
+.not-word {
+  color: var(--no);
+  font-style: normal;
+  font-weight: 700;
+}
+
+.head__title .not-word {
+  text-decoration: underline;
+  text-decoration-thickness: 3px;
+  text-underline-offset: 4px;
+}
+
+@media (min-width: 900px) {
+  .head {
+    padding-top: 28px;
+  }
+
+  .head__eyebrow {
+    margin-top: 18px;
+  }
+
+  .head__title {
+    font-size: 2.5rem;
+    line-height: 1.05;
+  }
+
+  .head__title .not-word {
+    text-underline-offset: 5px;
+  }
+
+  .head__text {
+    font-size: 0.9375rem;
+  }
+}

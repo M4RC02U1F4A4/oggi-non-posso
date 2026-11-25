@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
-import type { EventData } from '../api/types'
+import type { EventData, Participant } from '../api/types'
 import { isolate, joinNodes, t, tNodes } from '../i18n'
-import { capitalise, formatDayLong, formatDayShort, monthLong, parseDate, spansMonths } from '../lib/dates'
+import { capitalise, formatDayLong } from '../lib/dates'
 import { slotsText, summarise } from '../lib/result'
 import { VoteTable } from './VoteTable'
 import '../styles/ResultView.css'
@@ -15,30 +15,41 @@ interface ResultViewProps {
   children?: ReactNode
 }
 
-/** The closed event: the moments everyone can make, the next best, the whole table. */
+const CHECK = (
+  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">
+    <path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)
+
+/** "manca Anna", "manchi tu", "mancate tu e Luca": the caller first, as "tu". */
+function missingText(missing: Participant[], me: string | null): ReactNode {
+  const mine = missing.some((p) => p.id === me)
+  const names = [
+    ...(mine ? [<b key="me">{t('people.you')}</b>] : []),
+    ...missing.filter((p) => p.id !== me).map((p) => <b key={p.id}>{isolate(p.name)}</b>),
+  ]
+  return tNodes(mine ? 'result.missingYou' : 'result.missing', { count: missing.length, names: joinNodes(names) })
+}
+
+/** The closed event: the moments everyone can make, the next best, all the days. */
 export function ResultView({ event, children }: ResultViewProps) {
   const { free, rest, restHeading } = summarise(event)
-  const total = event.participants.length
-  // "Sabato 12" is enough while every day is in the same month.
-  const withMonth = spansMonths(event.days.map((day) => day.date))
+  const day = (date: string) => capitalise(formatDayLong(date, true))
 
   return (
     <main className="wrap result">
       <div className="result__lists">
         {free.length > 0 && (
-          <section>
-            <h2 className="section-title result__free-title">
-              <span>{t('result.free.title')}</span>
-            </h2>
+          <section className="result__section">
+            <h2 className="visually-hidden">{t('result.free.title')}</h2>
             <ul className="result__list">
               {free.map((group) => (
-                <li className="result__free" key={`${group.date}|${group.slots[0]}`}>
-                  <b>
-                    {capitalise(formatDayLong(group.date))}
-                    {withMonth && <small>{monthLong(parseDate(group.date).m)}</small>}
-                  </b>
-                  <span>{slotsText(group.slots)}</span>
-                  <em>{t('result.free.badge', { count: total, total })}</em>
+                <li className="result__row result__free" key={`${group.date}|${group.slots[0]}`}>
+                  <span className="result__check">{CHECK}</span>
+                  <span className="result__when">
+                    <b>{day(group.date)}</b>
+                    <span>{capitalise(slotsText(group.slots))}</span>
+                  </span>
                 </li>
               ))}
             </ul>
@@ -46,14 +57,16 @@ export function ResultView({ event, children }: ResultViewProps) {
         )}
 
         {restHeading !== null && (
-          <section className={free.length > 0 ? 'result__rest result__rest--after' : 'result__rest'}>
-            <h2 className="section-title">{restHeading}</h2>
-            <ul className={withMonth ? 'result__list result__list--month' : 'result__list'}>
+          <section className="result__section">
+            <h2 className="section-title result__title">{restHeading}</h2>
+            <ul className="result__list">
               {rest.map((group) => (
-                <li className="result__near" key={`${group.date}|${group.slots[0]}`}>
-                  <b>{formatDayShort(group.date, withMonth)}</b>
-                  <span>{slotsText(group.slots)}</span>
-                  <em>{tNodes('result.without', { names: joinNodes(group.missing.map((p) => isolate(p.name))) })}</em>
+                <li className="result__row result__near" key={`${group.date}|${group.slots[0]}`}>
+                  <span className="result__when">
+                    <b>{day(group.date)}</b>
+                    <span>{capitalise(slotsText(group.slots))}</span>
+                  </span>
+                  <span className="result__who">{missingText(group.missing, event.me)}</span>
                 </li>
               ))}
             </ul>
@@ -62,15 +75,12 @@ export function ResultView({ event, children }: ResultViewProps) {
       </div>
 
       <section className="result__calendar">
-        <h2 className="section-title" id={CALENDAR_ID} tabIndex={-1}>
+        <h2 className="section-title result__title" id={CALENDAR_ID} tabIndex={-1}>
           {t('result.calendar.title')}
         </h2>
-        <VoteTable event={event} mode="result" variant="mini" />
-        <p className="result__note">
-          <span className="only-wide">{t('result.calendar.noteHover')}</span>
-          <span className="only-narrow">{t('result.calendar.noteTap')}</span>
-        </p>
-        {children}
+        <p className="result__note">{t('result.calendar.note')}</p>
+        <VoteTable event={event} mode="result" />
+        {children && <div className="result__organiser">{children}</div>}
       </section>
     </main>
   )

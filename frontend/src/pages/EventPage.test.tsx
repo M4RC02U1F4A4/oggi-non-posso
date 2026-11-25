@@ -69,8 +69,10 @@ describe('the share link', () => {
     expect(screen.queryByText(INVALID)).toBeNull()
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Rimpatriata di dicembre')
     // Everyone who joined has answered, marks or not.
-    expect(document.body.textContent).toContain('Giulia cerca una data. Hanno già risposto in 5.')
-    expect(screen.getByText('ci siete tutti, per ora')).toBeDefined()
+    expect(document.body.textContent).toContain('Giulia cerca una data')
+    expect(document.body.textContent).toContain(
+      'Hanno già risposto in 5. Scrivi il tuo nome e segna quando non puoi.',
+    )
   })
 
   it.each(['k7Qm2xVd9LpA', 'anything', ORGANISER_KEY.toUpperCase(), `${EVENT_ID}0`])(
@@ -195,13 +197,14 @@ describe('where the focus goes', () => {
     act(() => FakeEventSource.latest().emit({ version: 41, kind: 'status', by: null }))
     await settle()
     expect(heading().textContent).toBe('Ci siete tutti in tre momenti')
-    expect(document.body.textContent).toContain('Giulia ha chiuso. Hanno risposto in 5: Giulia, Luca, Anna, Marta, Paolo.')
+    expect(document.body.textContent).toContain('Votazione chiusa · hanno risposto in 5')
+    expect(document.body.textContent).toContain('Giulia ha chiuso. Hanno risposto Giulia, Luca, Anna, Marta e Paolo.')
     expect(document.activeElement).toBe(heading())
 
     getEvent.mockResolvedValue(fixtureEvent('Anna', { version: 42 }))
     act(() => FakeEventSource.latest().emit({ version: 42, kind: 'status', by: null }))
     await settle()
-    expect(heading().textContent).toBe('Rimpatriata di dicembre')
+    expect(heading().textContent).toBe('Quando non puoi, Anna?')
     expect(document.activeElement).toBe(heading())
   })
 

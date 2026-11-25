@@ -37,7 +37,7 @@ export function JoinForm({ onJoin }: JoinFormProps) {
 
   return (
     <form className="join" onSubmit={(e) => void submit(e)} noValidate>
-      <label className="join__title" htmlFor={inputId}>
+      <label className="visually-hidden" htmlFor={inputId}>
         {t('join.title')}
       </label>
       <input

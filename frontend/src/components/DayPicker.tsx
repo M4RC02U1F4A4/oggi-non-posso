@@ -35,8 +35,8 @@ export function DayPicker({ selected, onToggle, today, max }: DayPickerProps) {
 
   return (
     <section className="picker">
-      <div className="section-title">
-        <h2>{t('create.days.title')}</h2>
+      <h2 className="field-label">{t('create.days.title')}</h2>
+      <div className="picker__card">
         <div className="picker__nav">
           <button
             type="button"
@@ -54,42 +54,42 @@ export function DayPicker({ selected, onToggle, today, max }: DayPickerProps) {
             onClick={() => setMonth(addMonths(month.y, month.m, 1))}
           />
         </div>
-      </div>
 
-      <div className="picker__grid" role="group" aria-label={title}>
-        {WEEKDAYS.map((weekday) => (
-          <div className="picker__weekday" aria-hidden="true" key={weekday}>
-            {weekdayShort(weekday)}
-          </div>
-        ))}
-        {monthMatrix(month.y, month.m)
-          .flat()
-          .map((day, index) => {
-            if (day === null) return <div className="picker__blank" key={`blank-${index}`} />
-            const date = toISODate(month.y, month.m, day)
-            const picked = selected.includes(date)
-            const past = date < today
-            const tooFar = date > last
-            return (
-              <button
-                type="button"
-                className={picked ? 'picker__day is-on' : 'picker__day'}
-                aria-pressed={picked}
-                aria-label={
-                  past
-                    ? t('create.days.past', { day: formatFull(date) })
-                    : tooFar
-                      ? t('create.days.tooFar', { day: formatFull(date) })
-                      : formatFull(date)
-                }
-                disabled={past || tooFar || (full && !picked)}
-                onClick={() => onToggle(date)}
-                key={date}
-              >
-                {day}
-              </button>
-            )
-          })}
+        <div className="picker__grid" role="group" aria-label={title}>
+          {WEEKDAYS.map((weekday) => (
+            <div className="picker__weekday" aria-hidden="true" key={weekday}>
+              {weekdayShort(weekday)}
+            </div>
+          ))}
+          {monthMatrix(month.y, month.m)
+            .flat()
+            .map((day, index) => {
+              if (day === null) return <div className="picker__blank" key={`blank-${index}`} />
+              const date = toISODate(month.y, month.m, day)
+              const picked = selected.includes(date)
+              const past = date < today
+              const tooFar = date > last
+              return (
+                <button
+                  type="button"
+                  className={picked ? 'picker__day is-on' : 'picker__day'}
+                  aria-pressed={picked}
+                  aria-label={
+                    past
+                      ? t('create.days.past', { day: formatFull(date) })
+                      : tooFar
+                        ? t('create.days.tooFar', { day: formatFull(date) })
+                        : formatFull(date)
+                  }
+                  disabled={past || tooFar || (full && !picked)}
+                  onClick={() => onToggle(date)}
+                  key={date}
+                >
+                  {day}
+                </button>
+              )
+            })}
+        </div>
       </div>
 
       {full && (

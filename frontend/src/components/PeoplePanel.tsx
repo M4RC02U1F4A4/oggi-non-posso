@@ -66,7 +66,7 @@ export function PeoplePanel({ event, marking, saveState, onRemove }: PeoplePanel
 
   return (
     <section className="people">
-      <h2 className="people__title" ref={titleRef} tabIndex={-1}>{t('people.title', { count: event.participants.length })}</h2>
+      <h2 className="box__title people__title" ref={titleRef} tabIndex={-1}>{t('people.title', { count: event.participants.length })}</h2>
       <ul className="people__list">
         {event.participants.map((participant) => {
           const mine = participant.id === event.me

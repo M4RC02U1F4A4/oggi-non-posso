@@ -1,10 +1,10 @@
 .notfound {
-  padding-top: 24px;
   padding-bottom: 48px;
 }
 
 .notfound p {
   max-width: 34rem;
-  margin-bottom: 20px;
-  font-size: 1.0625rem;
+  margin: 12px 0 20px;
+  color: var(--mute);
+  font-size: 1rem;
 }

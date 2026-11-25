@@ -1,17 +1,8 @@
 .sharebox {
-  border: 2px solid var(--rule-strong);
-  padding: 12px 14px;
   font-size: 0.875rem;
   line-height: 1.4;
 }
 
-.sharebox__url {
-  font-size: 1rem;
+.sharebox__title {
   font-weight: 600;
-  word-break: break-all;
-  user-select: all;
-}
-
-.sharebox__copy {
-  margin-top: 8px;
 }
