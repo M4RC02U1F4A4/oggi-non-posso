@@ -48,12 +48,17 @@ they can't make, and what stays unmarked is the answer.
 - A Go backend with SQLite (PostgreSQL may come later) and a **separate
   frontend**: React + TypeScript + Vite. The backend exposes a JSON API and
   nothing else; it knows nothing about pages.
-- The look is the "timetable" direction: a yellow band, black type, a
-  days × slots table (see "Look").
+- The look is the "agenda" direction: a white page, warm ink, one card
+  per day with its slots as chips; red only for "I can't", green only for
+  "everyone can" (see "Look"). It replaced a first "timetable" look that
+  was too heavy on black and yellow and did not make clear that the marks
+  are the times you can NOT make.
 
 ### Author's calls
 
-- **Names are visible.** The table shows who is missing, not only how many.
+- **Names are a touch away.** Each slot shows how many others can't; a
+  long press (or a tap, when only looking) names them, and the people panel
+  lists everyone.
 - **No accounts; links and tokens.** The share link is for everyone. The
   organiser also gets an organiser key, shown once at creation as a second
   link, that closes and reopens the voting and removes participants.
@@ -306,12 +311,12 @@ address counts by its /56, the block a home line is commonly given.
   After creating: the share link to copy, and the organiser link with a
   line saying to keep it.
 - `/e/:id` — the event. Unknown id: a "not found" page with a link to `/`.
-  - Open, not joined: the live table, read-only, under a "what's your
+  - Open, not joined: the live day cards, read-only, under a "what's your
     name?" form.
-  - Open, joined: the table to mark; a people panel (who marked how many
-    slots, who is marking right now) and the share link.
+  - Open, joined: the day cards to mark; a people panel (who marked how
+    many slots, who is marking right now) and the share link.
   - Closed: the result — the everyone-free groups, the one-missing groups,
-    and the whole table with counts.
+    and all the day cards with counts.
   - With the organiser key: close / reopen, remove a participant, copy both
     links.
 - `/e/:id/o/:key` — the organiser link, with the organiser key (a UUID) in
@@ -333,27 +338,56 @@ Credentials live in `localStorage`, keyed by event id.
   visible again and reconnects the stream when it drops.
 - "Is marking now" shows for 8 seconds after a participant's last
   `absences` update.
-- Phone: the table shows counts, a long press (or a tap on the count when
-  the event is closed) names who is missing. Desktop: names in the cells.
+- Every slot shows how many others can't ("2 no"); a long press (or a tap
+  when only looking, or on the closed event) names who is missing, in a
+  small bubble under the slot. Phone and desktop alike.
 - Dates are formatted from their parts, never through a time zone.
 
 ### Look
 
-- Colours: timetable yellow `#FFD100`, black `#000000`, white `#FFFFFF`;
-  absent-count greys `#F0F0EE` (one), `#DEDEDB` (two), `#C8C8C4` (three or
-  more); muted text `#5E5E5A`. "You can't" is a black cell with yellow
-  text; "everyone is free" in the result is a yellow cell.
-- Type: Barlow Condensed 600/700 for titles, day numbers and counts;
-  Barlow 400/500/600 for everything else. Fonts are bundled, not fetched
+The "agenda" look: a white page and warm ink, the days as cards. Red means
+only "I can't"; green means only "everyone can". No other accent colour.
+
+- Palette, light: ground `#FFFFFF`, ink `#22211F`, muted text `#6F6C66`,
+  rules `#E2DFD9`, quiet surfaces (link boxes, pills) `#F5F4F1`. "I can't":
+  text and border `#C9302A` on `#FFF0EE` (the drawn `#D4342B` is 4.4:1 on
+  the pale red; this one is 4.8:1). "Everyone can": `#1D8A4B` with a
+  `#EAF6EF` fill and a `#C4E5D1` border.
+- Palette, dark (`prefers-color-scheme: dark`), same roles: ground
+  `#161514`, cards `#1F1E1C`, text `#F1EFEA`, muted `#A19D95`, rules
+  `#34322E`; "I can't" `#FF6B5F` on `#3A1F1C`; "everyone can" `#4CC27A` on
+  `#16301F`. What is ink in light (primary buttons, picked days, the
+  "who is missing" bubble) is light with dark text in dark.
+- Type: Fraunces 600/700 for titles (30 px on the phone, 40 px on the
+  desktop; 18–21 px for card and section titles), Figtree 400–700 for
+  everything else. Both bundled (`@fontsource-variable`), never fetched
   from a third party.
-- Structure: a yellow band with the name of the product, the title and the
-  state; under it, the table with 3 px black rules at the top and under the
-  header, 1 px rules between rows; a black bar at the bottom of the phone
-  layout with the saved state.
-- Light and dark: dark swaps white for black surfaces and keeps the yellow
-  band.
+- Header of every page: the product name, small and muted; a muted bold
+  line (the event and who organises it); the title. To someone who has
+  joined the title asks "Quando **non** puoi, {name}?", with "non" in red
+  and underlined, and the line under it says that an untouched slot means
+  "I can".
+- Day cards: 14 px corners, 1 px rule. The header is the day ("Venerdì 11
+  dicembre") and, when marking, a small underlined "tutto il giorno". The
+  body is the event's slots as chips: on the phone one row with a column
+  per slot (shorter names with five slots); from 900 px the cards fill a
+  grid (columns at least 260 px) with two chips per row and full names.
+- Chips: free is white with a 1.5 px rule border; mine is the pale red
+  with a red border, red text, the slot name struck through and a small
+  round red cross; not in play is dashed and muted and not a control;
+  others missing is a small muted "N no" under the name. On the closed
+  event every chip has its count, and the slots everyone can make are
+  green with a check.
+- Buttons: primary is ink, fully rounded; secondary is white with a 1.5 px
+  ink border. Fields: 1.5 px rule border, 12 px corners, 46 px tall.
+- The phone has a white bar fixed at the bottom with a rule on top: "Non
+  puoi in **N** momenti" (N in red) and the saved state; on the creation
+  page the number of days and the create button.
+- Result: green rows with a round check for the moments everyone can make,
+  white rows for the next best with who is missing on the right ("manca
+  **Anna**", "manchi **tu**"), then all the day cards.
 - Phone first (390 px wide); the desktop layout (1280 px) is the same page
-  with the people panel beside the table.
+  with a sidebar (about 330 px) for the people and the organiser's links.
 
 ## Security notes
 
